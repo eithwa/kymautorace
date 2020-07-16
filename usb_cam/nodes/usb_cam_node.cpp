@@ -58,7 +58,7 @@ public:
   //std::string start_service_name_, start_service_name_;
   bool streaming_status_;
   int image_width_, image_height_, framerate_, exposure_, brightness_, contrast_, saturation_, sharpness_, focus_,
-      white_balance_, gain_;
+      white_balance_, gain_, exposure_auto_, exposure_absolute_;
   bool autofocus_, autoexposure_, auto_white_balance_;
   boost::shared_ptr<camera_info_manager::CameraInfoManager> cinfo_;
 
@@ -106,8 +106,10 @@ public:
     node_.param("autofocus", autofocus_, false);
     node_.param("focus", focus_, -1); //0-255, -1 "leave alone"
     // enable/disable autoexposure
-    node_.param("autoexposure", autoexposure_, true);
-    node_.param("exposure", exposure_, 100);
+    // node_.param("autoexposure", autoexposure_, true);
+    // node_.param("exposure", exposure_, 100);
+    node_.param("exposure_auto", exposure_auto_, 1);
+    node_.param("exposure_absolute", exposure_absolute_, 100);
     node_.param("gain", gain_, -1); //0-100?, -1 "leave alone"
     // enable/disable auto white balance temperature
     node_.param("auto_white_balance", auto_white_balance_, true);
@@ -198,12 +200,20 @@ public:
     }
 
     // check auto exposure
-    if (!autoexposure_)
+    // if (!autoexposure_)
+    // {
+    //   // turn down exposure control (from max of 3)
+    //   cam_.set_v4l_parameter("exposure_auto", 1);
+    //   // change the exposure level
+    //   cam_.set_v4l_parameter("exposure_absolute", exposure_);
+    // }
+    
+    if (exposure_auto_==1)
     {
       // turn down exposure control (from max of 3)
-      cam_.set_v4l_parameter("exposure_auto", 1);
+      cam_.set_v4l_parameter("exposure_auto", exposure_auto_);
       // change the exposure level
-      cam_.set_v4l_parameter("exposure_absolute", exposure_);
+      cam_.set_v4l_parameter("exposure_absolute", exposure_absolute_);
     }
 
     // check auto focus

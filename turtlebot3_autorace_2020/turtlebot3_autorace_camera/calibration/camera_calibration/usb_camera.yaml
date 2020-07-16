@@ -1,7 +1,7 @@
 camera:
   brightness: -64
   camera_frame_id: usb_cam
-  camera_info_url: package://turtlebot3_autorace_traffic_light_camera/calibration/intrinsic_calibration/usbcamerav2_640x480_30fps.yaml
+  camera_info_url: package://turtlebot3_autorace_camera/calibration/intrinsic_calibration/usbcamerav2_640x480_30fps.yaml
   contrast: 64
   exposure_absolute: 100
   exposure_auto: 1
