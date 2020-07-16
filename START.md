@@ -1,4 +1,4 @@
-### strat
+# strat
 
   ```bash
   $ roslaunch turtlebot3_autorace_camera turtlebot3_autorace_camera_usb.launch
@@ -6,7 +6,7 @@
   $ roslaunch turtlebot3_autorace_core turtlebot3_autorace_core.launch
   $ roslaunch turtlebot3_bringup turtlebot3_robot.launch
   ```
-### camera
+## camera
 
   $ export AUTO_IN_CALIB=action
   $ export GAZEBO_MODE=false
@@ -21,12 +21,13 @@
 
   $ roslaunch turtlebot3_autorace_camera_detect turtlebot3_autorace_detect_traffic_light.launch
  
-### triffic light
+## triffic light
   $ rostopic pub -1 /core/decided_mode std_msgs/UInt8 "data: 3"
-### dectect lane
+
+## dectect lane
   $ rostopic pub -1 /core/decided_mode std_msgs/UInt8 "data: 2"
 
-# detect sign
+## detect sign
   ```
   # pub -> name: detect/traffic_sign type -> UInt8  
   # sign 0-8 ->  self.TrafficSign = Enum('TrafficSign', 'divide way construction parking stop tunnel left right noentry')
