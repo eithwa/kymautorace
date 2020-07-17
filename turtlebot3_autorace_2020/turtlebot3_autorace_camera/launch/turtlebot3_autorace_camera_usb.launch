@@ -1,3 +1,4 @@
+<?xml version="1.0" ?>
 <launch>
   <rosparam command="load" file="$(find turtlebot3_autorace_camera)/calibration/camera_calibration/usb_camera.yaml" />
   <!-- <rosparam command="load" file="$(find dynamic_usbcam)/data/usb_camera.yaml" /> -->
@@ -13,4 +14,6 @@
       <param name="io_method" value="mmap"/>
       <remap from="image_raw" to="image" />
     </node>
+    <node name="web_video_server" pkg="web_video_server" type="web_video_server"/>
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
 </launch>

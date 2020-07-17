@@ -133,7 +133,7 @@ class ControlIntersection():
                 rospy.loginfo("right moving")
                 msg_moving = MovingParam()
                 msg_moving.moving_type=3#right
-                msg_moving.moving_value_angular=70
+                msg_moving.moving_value_angular=60
                 msg_moving.moving_value_linear=0.0
                 self.pub_moving.publish(msg_moving)
                 while True:
@@ -172,12 +172,12 @@ class ControlIntersection():
             if(self.is_right_detected == True):
                 while True:
                     # print("right orientation_w error, w: ", self.current_orientation_w)
-                    if self.current_angle <0 and self.current_angle>(-125):
+                    if self.current_angle <0 and self.current_angle>(-120):
                         break
             elif(self.is_left_detected == True):
                 while True:
-                    print("left current_angle error, w: ", self.current_angle)
-                    if self.current_angle >0 and self.current_angle<125:
+                    # print("left current_angle error, w: ", self.current_angle)
+                    if self.current_angle >0 and self.current_angle<120:
                         break
             msg_pub_intersection_return.data = self.StepOfIntersection.out.value
         
@@ -186,7 +186,7 @@ class ControlIntersection():
             if(self.is_right_detected == True):
                 msg_moving = MovingParam()
                 msg_moving.moving_type=2#left
-                msg_moving.moving_value_angular=10
+                msg_moving.moving_value_angular=5
                 msg_moving.moving_value_linear=0.0
                 self.is_moving_complete=False
                 self.pub_moving.publish(msg_moving)
@@ -215,12 +215,12 @@ class ControlIntersection():
                 while True:
                     if self.is_moving_complete == True:
                         break
-                print("finish")
-                rospy.sleep(10)
+                # print("finish")
+                rospy.sleep(0.5)
             elif(self.is_left_detected == True):
                 msg_moving = MovingParam()
                 msg_moving.moving_type=3#right
-                msg_moving.moving_value_angular=10
+                msg_moving.moving_value_angular=5
                 msg_moving.moving_value_linear=0.0
                 self.is_moving_complete=False
                 self.pub_moving.publish(msg_moving)
@@ -232,7 +232,7 @@ class ControlIntersection():
                 msg_moving = MovingParam()
                 msg_moving.moving_type=4
                 msg_moving.moving_value_angular=0
-                msg_moving.moving_value_linear=0.25 #0.05 #NEW
+                msg_moving.moving_value_linear=0.35 #0.05 #NEW
                 self.is_moving_complete=False
                 self.pub_moving.publish(msg_moving)
                 while True:

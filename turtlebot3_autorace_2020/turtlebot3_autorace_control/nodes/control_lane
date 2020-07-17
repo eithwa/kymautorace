@@ -45,45 +45,45 @@ class ControlLane():
         self.err_flag = 1
 
     def cbFollowLane(self, desired_center):
-        #############################################
-        if self.err_flag == 1:
-            center = desired_center.data
+        # #############################################
+        # if self.err_flag == 1:
+        #     center = desired_center.data
 
-            error = center - 500
+        #     error = center - 500
 
-            Kp = 0.0015
-            Kd = 0.007
+        #     Kp = 0.0015
+        #     Kd = 0.007
 
-            angular_z = Kp * error + Kd * (error - self.lastError)
-            self.lastError = error
-            twist = Twist()
-            twist.linear.x = 0
-            twist.linear.y = 0
-            twist.linear.z = 0
-            twist.angular.x = 0
-            twist.angular.y = 0
-            twist.angular.z = -max(angular_z, -2.0) if angular_z < 0 else -min(angular_z, 2.0)
-            self.err_flag = 0
-            self.pub_cmd_vel.publish(twist)
-        else :
-        ###############################################
-            center = desired_center.data
+        #     angular_z = Kp * error + Kd * (error - self.lastError)
+        #     self.lastError = error
+        #     twist = Twist()
+        #     twist.linear.x = 0
+        #     twist.linear.y = 0
+        #     twist.linear.z = 0
+        #     twist.angular.x = 0
+        #     twist.angular.y = 0
+        #     twist.angular.z = -max(angular_z, -2.0) if angular_z < 0 else -min(angular_z, 2.0)
+        #     self.err_flag = 0
+        #     self.pub_cmd_vel.publish(twist)
+        # else :
+        # ###############################################
+        center = desired_center.data
 
-            error = center - 500
+        error = center - 500
 
-            Kp = 0.0015
-            Kd = 0.007
+        Kp = 0.0015
+        Kd = 0.005
 
-            angular_z = Kp * error + Kd * (error - self.lastError)
-            self.lastError = error
-            twist = Twist()
-            twist.linear.x = 0.07
-            twist.linear.y = 0
-            twist.linear.z = 0
-            twist.angular.x = 0
-            twist.angular.y = 0
-            twist.angular.z = -max(angular_z, -2.0) if angular_z < 0 else -min(angular_z, 2.0)
-            self.pub_cmd_vel.publish(twist)
+        angular_z = Kp * error + Kd * (error - self.lastError)
+        self.lastError = error
+        twist = Twist()
+        twist.linear.x = 0.07
+        twist.linear.y = 0
+        twist.linear.z = 0
+        twist.angular.x = 0
+        twist.angular.y = 0
+        twist.angular.z = -max(angular_z, -2.0) if angular_z < 0 else -min(angular_z, 2.0)
+        self.pub_cmd_vel.publish(twist)
 
     def fnShutDown(self):
         rospy.loginfo("Shutting down. cmd_vel will be 0")
