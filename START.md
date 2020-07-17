@@ -3,8 +3,8 @@
   ```bash
   $ roslaunch turtlebot3_autorace_camera turtlebot3_autorace_camera_usb.launch
   $ roslaunch turtlebot3_autorace_camera turtlebot3_autorace_intrinsic_camera_calibration.launch
-  $ roslaunch turtlebot3_autorace_core turtlebot3_autorace_core.launch
   $ roslaunch turtlebot3_bringup turtlebot3_robot.launch
+  $ roslaunch turtlebot3_autorace_core turtlebot3_autorace_core.launch
   ```
 ## camera
 
@@ -12,6 +12,7 @@
   $ export GAZEBO_MODE=false
 
   $ export AUTO_EX_CALIB=action
+  $ export AUTO_EX_CALIB=calibration
   $ roslaunch turtlebot3_autorace_camera turtlebot3_autorace_extrinsic_camera_calibration.launch
 
   $ export AUTO_DT_CALIB=action

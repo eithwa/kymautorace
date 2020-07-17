@@ -48,9 +48,9 @@ class ControlMoving():
         self.last_current_theta = 0.0
         self.lastError = 0.0
 
-        self.test = math.radians(90)
+        # self.test = math.radians(90)
 
-        rospy.loginfo("this : %f", self.test)
+        # rospy.loginfo("this : %f", self.test)
 
 
         msg_pub_max_vel = Float64()

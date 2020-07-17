@@ -119,7 +119,7 @@ class ImageProjection():
         pts_src = np.array([[160 - top_x, 180 - top_y], [160 + top_x, 180 - top_y], [160 + bottom_x, 120 + bottom_y], [160 - bottom_x, 120 + bottom_y]])
 
         # selecting 4 points from image that will be transformed
-        pts_dst = np.array([[300, 0], [700, 0], [700, 600], [300, 600]])
+        pts_dst = np.array([[200, -400], [800, -400], [700, 600], [300, 600]])
 
         # finding homography matrix
         h, status = cv2.findHomography(pts_src, pts_dst)
