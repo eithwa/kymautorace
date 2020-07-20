@@ -5,7 +5,7 @@ detect:
       hue_h: 179
       saturation_l: 0
       saturation_h: 255
-      lightness_l: 137
+      lightness_l: 148
       lightness_h: 255
     yellow:
       hue_l: 15

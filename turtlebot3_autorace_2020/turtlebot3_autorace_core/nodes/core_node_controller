@@ -155,7 +155,8 @@ class CoreNodeController():
         self.current_step_construction = construction_msg.data
         rospy.loginfo("into %d", self.current_step_construction)
 
-        if self.current_step_construction == self.StepOfConstruction.exit.value:
+        if self.current_step_construction == self.StepOfConstruction.motion_lf.value:
+        # if self.current_step_construction == self.StepOfConstruction.exit.value:
             # self.current_mode = self.CurrentMode.lane_following.value
             msg_pub_consttopark_order = 1
             rospy.loginfo("pls no obs:%d", msg_pub_consttopark_order)
@@ -185,7 +186,7 @@ class CoreNodeController():
         rospy.loginfo("into %d", self.current_step_parking_lot)
 
         if self.current_step_parking_lot == self.StepOfParkingLot.parking.value:
-
+            msg_mode_return = UInt8()
             rospy.loginfo("pub_mode_return")
             self.pub_mode_return.publish(msg_mode_return)
 
@@ -401,7 +402,8 @@ class CoreNodeController():
 
             elif self.current_step_construction == self.StepOfConstruction.motion_lf.value:
                 rospy.loginfo("Current step : motion_lf")
-                rospy.loginfo("Current step : exit")
+                rospy.loginfo("Construction Finish")
+                # rospy.loginfo("Current step : exit")
                 
                 msg_pub_construction_order.data = self.StepOfConstruction.exit.value
 
@@ -416,7 +418,7 @@ class CoreNodeController():
 
             elif self.current_step_construction == self.StepOfConstruction.exit.value:
                 rospy.loginfo("Current step : exit")
-                rospy.loginfo("Go to next step : searching construction sign")
+                rospy.loginfo("Go to next step : searching construction sign")#what is this?
 
                 msg_pub_construction_order.data = self.StepOfConstruction.searching_construction_sign.value
 

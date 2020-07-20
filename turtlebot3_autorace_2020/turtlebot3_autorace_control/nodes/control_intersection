@@ -100,6 +100,16 @@ class ControlIntersection():
         elif order.data == self.StepOfIntersection.exit.value:
             # rospy.sleep(1)
             
+            msg_moving = MovingParam()
+            msg_moving.moving_type=2#left
+            msg_moving.moving_value_angular=20
+            msg_moving.moving_value_linear=0.0
+            self.pub_moving.publish(msg_moving)
+            while True:
+                if self.is_moving_complete == True:
+                    break
+            rospy.sleep(0.5)
+
             rospy.loginfo("Now motion")
             msg_moving = MovingParam()
             msg_moving.moving_type=4
@@ -111,16 +121,7 @@ class ControlIntersection():
                     break
 
             rospy.sleep(0.5)
-            msg_moving = MovingParam()
-            msg_moving.moving_type=2#left
-            msg_moving.moving_value_angular=10
-            msg_moving.moving_value_linear=0.0
-            self.pub_moving.publish(msg_moving)
-            while True:
-                if self.is_moving_complete == True:
-                    break
-
-            rospy.sleep(0.5)
+            
 
             print("searching sign")
             while True:
@@ -147,7 +148,7 @@ class ControlIntersection():
                 rospy.loginfo("left moving")
                 msg_moving = MovingParam()
                 msg_moving.moving_type=2#left
-                msg_moving.moving_value_angular=70
+                msg_moving.moving_value_angular=75
                 msg_moving.moving_value_linear=0.0
                 self.pub_moving.publish(msg_moving)
                 while True:
@@ -232,7 +233,7 @@ class ControlIntersection():
                 msg_moving = MovingParam()
                 msg_moving.moving_type=4
                 msg_moving.moving_value_angular=0
-                msg_moving.moving_value_linear=0.35 #0.05 #NEW
+                msg_moving.moving_value_linear=0.30 #0.05 #NEW
                 self.is_moving_complete=False
                 self.pub_moving.publish(msg_moving)
                 while True:

@@ -49,7 +49,7 @@ class DetectLane():
         self.lightness_yellow_l = rospy.get_param("detect/lane/yellow/lightness_l", 81)
         self.lightness_yellow_h = rospy.get_param("detect/lane/yellow/lightness_h", 255)
 
-        self.is_calibration_mode = rospy.get_param("is_detection_calibration_mode", False)
+        self.is_calibration_mode = rospy.get_param("/detect_lane/is_detection_calibration_mode", False)
         if self.is_calibration_mode == True:
             srv_detect_lane = Server(DetectLaneParamsConfig, self.cbGetDetectLaneParam)
 
