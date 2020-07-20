@@ -115,8 +115,8 @@ class CoreModeDecider():
         rospy.loginfo("Current Mode : lane_following")
 
     def fnDecideMode(self, invoked_object, msg_data):                        # starts only when the traffic sign / traffic light is detected & current_mode is lane_following
-        print("self.current_mode", self.current_mode)
-        print("msg_data.data", msg_data.data)
+        # print("self.current_mode", self.current_mode)
+        # print("msg_data.data", msg_data.data)
         if self.current_mode == self.CurrentMode.lane_following.value:
             if invoked_object == self.InvokedObject.traffic_sign.value:      # Any Sign detected
                 if msg_data.data == self.TrafficSign.way.value:              # way Sign detected

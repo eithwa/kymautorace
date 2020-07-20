@@ -6,8 +6,9 @@
   <!-- parking lot detection -->
   <node pkg="turtlebot3_autorace_detect" type="detect_parking" name="detect_parking" output="screen">
     <param if="$(eval calibration_mode == 'calibration')" name="/is_detection_calibration_mode" value="True"/>
-    <param if="$(eval calibration_mode == 'action')" name="/is_detection_calibration_mode" value="False"/>    
-    <remap from="/detect/image_input_p" to="/camera/image_compensated" />
+    <param if="$(eval calibration_mode == 'action')" name="/is_detection_calibration_mode" value="False"/>  
+    <remap from="/detect/image_input_p" to="/camera/image_rect_color" />  
+    <!--remap from="/detect/image_input_p" to="/camera/image_compensated" /-->
     <remap from="/detect/image_input_p/compressed" to="/camera/image_compensated/compressed" />
     <remap from="/detect/scan" to="/scan" />
     <remap from="/detect/image_output_p" to="/detect/image_parking" />

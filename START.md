@@ -1,6 +1,7 @@
 # strat
 
   ```bash
+  $ roscore
   $ roslaunch turtlebot3_autorace_camera turtlebot3_autorace_camera_usb.launch
   $ roslaunch turtlebot3_autorace_camera turtlebot3_autorace_intrinsic_camera_calibration.launch
   $ roslaunch turtlebot3_bringup turtlebot3_robot.launch

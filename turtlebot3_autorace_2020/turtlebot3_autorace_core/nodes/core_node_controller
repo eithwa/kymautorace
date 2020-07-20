@@ -443,21 +443,29 @@ class CoreNodeController():
                 rospy.loginfo("Current step : searching_parking_sign")
                 rospy.loginfo("Go to next step : searching_parking_point_line")
 
-                msg_pub_parking_lot_order.data = self.StepOfParkingLot.searching_parking_point_line.value
+                # msg_pub_parking_lot_order.data = self.StepOfParkingLot.searching_parking_point_line.value
+                msg_pub_parking_lot_order.data = self.StepOfParkingLot.searching_parking_sign.value
+                # self.fnLaunch(self.Launcher.launch_detect_lane.value, True)
+                # self.fnLaunch(self.Launcher.launch_detect_sign.value, False)
+                # self.fnLaunch(self.Launcher.launch_detect_parking.value, True)
 
+                # self.fnLaunch(self.Launcher.launch_control_lane.value, False)
+                # self.fnLaunch(self.Launcher.launch_control_parking.value, False)
+                # self.fnLaunch(self.Launcher.launch_control_moving.value, True)
                 self.fnLaunch(self.Launcher.launch_detect_lane.value, True)
                 self.fnLaunch(self.Launcher.launch_detect_sign.value, False)
                 self.fnLaunch(self.Launcher.launch_detect_parking.value, True)
 
-                self.fnLaunch(self.Launcher.launch_control_lane.value, False)
+                self.fnLaunch(self.Launcher.launch_control_lane.value, True)
                 self.fnLaunch(self.Launcher.launch_control_parking.value, False)
-                self.fnLaunch(self.Launcher.launch_control_moving.value, True)
+                self.fnLaunch(self.Launcher.launch_control_moving.value, False)
 
             elif self.current_step_parking_lot == self.StepOfParkingLot.searching_parking_point_line.value:
                 rospy.loginfo("Current step : searching_parking_point_line")
                 rospy.loginfo("Go to next step : searching_nonreserved_parking_area")
 
-                msg_pub_parking_lot_order.data = self.StepOfParkingLot.searching_nonreserved_parking_area.value
+                # msg_pub_parking_lot_order.data = self.StepOfParkingLot.searching_nonreserved_parking_area.value
+                msg_pub_parking_lot_order.data = self.StepOfParkingLot.searching_parking_point_line.value
 
                 self.fnLaunch(self.Launcher.launch_detect_sign.value, False)
                 self.fnLaunch(self.Launcher.launch_detect_lane.value, True)
