@@ -89,12 +89,12 @@ def fnCheckDistanceIsEqual(point1, point2, point3):
 
 class DetectLevel():
     def __init__(self):
-        self.hue_red_l = rospy.get_param("~detect/level/red/hue_l", 0)
-        self.hue_red_h = rospy.get_param("~detect/level/red/hue_h", 179)
-        self.saturation_red_l = rospy.get_param("~detect/level/red/saturation_l", 109)
-        self.saturation_red_h = rospy.get_param("~detect/level/red/saturation_h", 255)
-        self.lightness_red_l = rospy.get_param("~detect/level/red/lightness_l", 123)
-        self.lightness_red_h = rospy.get_param("~detect/level/red/lightness_h", 255)
+        self.hue_red_l = rospy.get_param("detect/level/red/hue_l", 0)
+        self.hue_red_h = rospy.get_param("detect/level/red/hue_h", 179)
+        self.saturation_red_l = rospy.get_param("detect/level/red/saturation_l", 109)
+        self.saturation_red_h = rospy.get_param("detect/level/red/saturation_h", 255)
+        self.lightness_red_l = rospy.get_param("detect/level/red/lightness_l", 123)
+        self.lightness_red_h = rospy.get_param("detect/level/red/lightness_h", 255)
 
         self.is_calibration_mode = rospy.get_param("~is_detection_calibration_mode", False)
         if self.is_calibration_mode == True:
@@ -188,9 +188,7 @@ class DetectLevel():
 
     def cbLevelCrossingOrder(self, order):
         pub_level_crossing_return = UInt8()
-
         if order.data == self.StepOfLevelCrossing.searching_stop_sign.value:
-
             pub_level_crossing_return.data = self.StepOfLevelCrossing.searching_level.value
                                                             
         elif order.data == self.StepOfLevelCrossing.searching_level.value:
@@ -199,20 +197,17 @@ class DetectLevel():
             msg_pub_max_vel = Float64()
             msg_pub_max_vel.data = 0.03
             self.pub_max_vel.publish(msg_pub_max_vel)
-
+            # msg_pub_max_vel.data = 0.02
+            # self.pub_max_vel.publish(msg_pub_max_vel)
+            rospy.loginfo("SLOWDOWN")
             while True:
                 is_level_detected, _, _ = self.fnFindLevel()
                 if is_level_detected == True:
                     break
                 else:
                     pass
-            
-            rospy.loginfo("SLOWDOWN")
 
-            msg_pub_max_vel.data = 0.02
-            self.pub_max_vel.publish(msg_pub_max_vel)
-
-            pub_level_crossing_return.data = self.StepOfLevelCrossing.watching_level.value
+            pub_level_crossing_return.data = self.StepOfLevelCrossing.stop.value
 
         elif order.data == self.StepOfLevelCrossing.watching_level.value:
             rospy.loginfo("Now watching_level")
@@ -234,7 +229,9 @@ class DetectLevel():
 
         elif order.data == self.StepOfLevelCrossing.stop.value:
             rospy.loginfo("Now stop")
-
+            msg_pub_max_vel = Float64()
+            msg_pub_max_vel.data = 0.0
+            self.pub_max_vel.publish(msg_pub_max_vel)
             while True:
                 _, _, is_level_opened = self.fnFindLevel()
                 if is_level_opened == True:
@@ -277,12 +274,21 @@ class DetectLevel():
         Lightness_l = self.lightness_red_l
         Lightness_h = self.lightness_red_h
 
-        # define range of red color in HSV
-        lower_red = np.array([Hue_l, Saturation_l, Lightness_l])
-        upper_red = np.array([Hue_h, Saturation_h, Lightness_h])
+        if(Hue_l<=Hue_h):
+            # define range of red color in HSV
+            lower_red = np.array([Hue_l, Saturation_l, Lightness_l])
+            upper_red = np.array([Hue_h, Saturation_h, Lightness_h])
 
-        # Threshold the HSV image to get only red colors
-        mask = cv2.inRange(hsv, lower_red, upper_red)
+            # Threshold the HSV image to get only red colors
+            mask = cv2.inRange(hsv, lower_red, upper_red)
+        else:
+            lower_red = np.array([Hue_l, Saturation_l, Lightness_l])
+            upper_red = np.array([179, Saturation_h, Lightness_h])
+            mask1 = cv2.inRange(hsv, lower_red, upper_red)
+            lower_red2 = np.array([0, Saturation_l, Lightness_l])
+            upper_red2 = np.array([Hue_h, Saturation_h, Lightness_h])
+            mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+            mask = mask1+mask2
 
         if self.is_calibration_mode == True:
             if self.pub_image_type == "compressed":
@@ -311,7 +317,7 @@ class DetectLevel():
         # Filter by Area.
         params.filterByArea = True
         params.minArea = 200
-        params.maxArea = 3000
+        params.maxArea = 9000
 
         # Filter by Circularity
         params.filterByCircularity = True
@@ -329,7 +335,7 @@ class DetectLevel():
         mean_y = 0.0
 
         # if detected 3 red rectangular
-        if len(keypts) == 3:
+        if len(keypts) >= 3:
             for i in range(3):
                 mean_x = mean_x + keypts[i].pt[0]/3
                 mean_y = mean_y + keypts[i].pt[1]/3
@@ -344,24 +350,36 @@ class DetectLevel():
             point1 =  [int(keypts[idx1].pt[0]), int(keypts[idx1].pt[1]-1)]
             point2 = [int(keypts[idx3].pt[0]), int(keypts[idx3].pt[1]-1)]
             point3 = [int(keypts[idx2].pt[0]), int(keypts[idx2].pt[1]-1)]
-
+            #======
+            angle = math.degrees( math.atan2((point1[1]-point2[1]), (point1[0]-point2[0])))
+            if(angle<0):
+                angle+=360
+            # print(angle)
+            angle_range=20
+            # print("abs(0-angle)", abs(0-angle), "abs(180-angle)", abs(180-angle))
+            if( abs(0-angle)<angle_range or abs(180-angle)<angle_range ):
+                self.stop_bar_count = 30
+                is_level_detected = True
+                is_level_close = True
+                self.stop_bar_state = 'stop'
+            #======
             # test linearity and distance equality. If satisfy the both, continue to next process
-            is_rects_linear = fnCheckLinearity(point1, point2, point3)
-            is_rects_dist_equal = fnCheckDistanceIsEqual(point1, point2, point3)
+            # is_rects_linear = fnCheckLinearity(point1, point2, point3)
+            # is_rects_dist_equal = fnCheckDistanceIsEqual(point1, point2, point3)
 
-            if is_rects_linear == True or is_rects_dist_equal == True:
-                # finding the angle of line
-                distance_bar2car = 100 / fnCalcDistanceDot2Dot(point1[0], point1[1], point2[0], point2[1])
-
-                # publishing topic
-                self.stop_bar_count = 4
-                if distance_bar2car > 0.5:
-                    is_level_detected = True
-                    self.stop_bar_state = 'slowdown'
-                    self.state = "detected"
-                else:
-                    is_level_close = True
-                    self.stop_bar_state = 'stop'
+            # if is_rects_linear == True or is_rects_dist_equal == True:
+            #     # finding the angle of line
+            #     distance_bar2car = 100 / fnCalcDistanceDot2Dot(point1[0], point1[1], point2[0], point2[1])
+                
+            #     # publishing topic
+            #     self.stop_bar_count = 4
+            #     if distance_bar2car > 0.5:
+            #         is_level_detected = True
+            #         self.stop_bar_state = 'slowdown'
+            #         self.state = "detected"
+            #     else:
+            #         is_level_close = True
+            #         self.stop_bar_state = 'stop'
 
         if self.stop_bar_count > 0:
             self.stop_bar_count -= 1
@@ -376,7 +394,7 @@ class DetectLevel():
         elif self.pub_image_type == "raw":
             # publishes level image in raw type
             self.pub_image_level.publish(self.cvBridge.cv2_to_imgmsg(frame, "bgr8"))
-
+        # print("is_level_detected", is_level_detected, "is_level_close", is_level_close, "is_level_opened", is_level_opened)
         return is_level_detected, is_level_close, is_level_opened
 
     def cbLevelCrossingFinished(self, level_crossing_finished_msg):

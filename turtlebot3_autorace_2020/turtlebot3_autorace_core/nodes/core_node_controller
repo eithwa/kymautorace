@@ -68,7 +68,7 @@ class CoreNodeController():
         self.StepOfIntersection = Enum('StepOfIntersection', 'detect_intersection_sign exit finish out close')
         self.StepOfConstruction = Enum('StepOfConstruction', 'searching_construction_sign find_obstacle motion_lf exit')
         self.StepOfParkingLot = Enum('StepOfParkingLot', 'searching_parking_sign searching_parking_point_line searching_nonreserved_parking_area parking try_find_lane')
-        self.StepOfLevelCrossing = Enum('StepOfLevelCrossing', 'searching_stop_sign go_straight waiting stop pass_level')
+        self.StepOfLevelCrossing = Enum('StepOfLevelCrossing', 'searching_stop_sign searching_level watching_level stop pass_level')
         self.StepOfTunnel = Enum('StepOfTunnel', 'searching_tunnel_sign go_in_to_tunnel navigation go_out_from_tunnel exit')      
 
         self.current_step_traffic_light = self.StepOfTrafficLight.searching_traffic_light.value
@@ -511,11 +511,12 @@ class CoreNodeController():
         elif self.current_mode == self.CurrentMode.level_crossing.value:
             rospy.loginfo("New trigger for level_crossing")
             msg_pub_level_crossing_order = UInt8()
-
+            #searching_stop_sign searching_level watching_level stop pass_level
             if self.current_step_level_crossing == self.StepOfLevelCrossing.searching_stop_sign.value:
-                rospy.loginfo("Current step : searching_stop_sign")
-                rospy.loginfo("Go to next step : go straight")
-                msg_pub_level_crossing_order.data = self.StepOfLevelCrossing.go_straight.value
+                rospy.loginfo("Current step : Find Stop Sign")
+                rospy.loginfo("Next step : Detect Level")
+                # rospy.loginfo("Go to next step : go straight")
+                msg_pub_level_crossing_order.data = self.StepOfLevelCrossing.searching_level.value
                 self.fnLaunch(self.Launcher.launch_control_lane.value, True)
                 self.fnLaunch(self.Launcher.launch_control_moving.value, True)
 
@@ -523,11 +524,10 @@ class CoreNodeController():
                 self.fnLaunch(self.Launcher.launch_detect_level.value, True)
                 self.fnLaunch(self.Launcher.launch_detect_lane.value, True)
 
-            elif self.current_step_level_crossing == self.StepOfLevelCrossing.go_straight.value:
-                rospy.loginfo("Current step : go straight")
-                rospy.loginfo("Go to next step : waiting")
+            elif self.current_step_level_crossing == self.StepOfLevelCrossing.searching_level.value:
+                rospy.loginfo("Next step : stop Level")
 
-                msg_pub_level_crossing_order.data = self.StepOfLevelCrossing.waiting.value
+                msg_pub_level_crossing_order.data = self.StepOfLevelCrossing.stop.value
 
                 self.fnLaunch(self.Launcher.launch_control_lane.value, False)
                 self.fnLaunch(self.Launcher.launch_control_moving.value, True)
@@ -536,11 +536,22 @@ class CoreNodeController():
                 self.fnLaunch(self.Launcher.launch_detect_lane.value, False)
                 self.fnLaunch(self.Launcher.launch_detect_level.value, True)
 
-            elif self.current_step_level_crossing == self.StepOfLevelCrossing.waiting.value:
-                rospy.loginfo("Current step : waiting")
-                rospy.loginfo("Go to next step : pass_level")
+            # elif self.current_step_level_crossing == self.StepOfLevelCrossing.watching_level.value:
+            #     rospy.loginfo("Next step : Stop")
 
-                msg_pub_level_crossing_order.data = self.StepOfLevelCrossing.pass_level.value
+            #     msg_pub_level_crossing_order.data = self.StepOfLevelCrossing.stop.value
+
+            #     self.fnLaunch(self.Launcher.launch_control_lane.value, False)
+            #     self.fnLaunch(self.Launcher.launch_control_moving.value, True)
+                
+            #     self.fnLaunch(self.Launcher.launch_detect_sign.value, False)
+            #     self.fnLaunch(self.Launcher.launch_detect_lane.value, False)
+            #     self.fnLaunch(self.Launcher.launch_detect_level.value, True)
+
+            elif self.current_step_level_crossing == self.StepOfLevelCrossing.stop.value:
+                rospy.loginfo("Current step: Stop")
+
+                msg_pub_level_crossing_order.data = self.StepOfLevelCrossing.stop.value
 
                 self.fnLaunch(self.Launcher.launch_control_lane.value, False)
                 self.fnLaunch(self.Launcher.launch_control_moving.value, True)
@@ -548,19 +559,18 @@ class CoreNodeController():
                 self.fnLaunch(self.Launcher.launch_detect_sign.value, False)
                 self.fnLaunch(self.Launcher.launch_detect_lane.value, False)
                 self.fnLaunch(self.Launcher.launch_detect_level.value, True)
+            # elif self.current_step_level_crossing == self.StepOfLevelCrossing.pass_level.value:
+            #     rospy.loginfo("Current step : pass_level")
+            #     rospy.loginfo("Go to next step : searching_stop_sign")
 
-            elif self.current_step_level_crossing == self.StepOfLevelCrossing.pass_level.value:
-                rospy.loginfo("Current step : pass_level")
-                rospy.loginfo("Go to next step : searching_stop_sign")
+            #     msg_pub_level_crossing_order.data = self.StepOfLevelCrossing.searching_stop_sign.value
 
-                msg_pub_level_crossing_order.data = self.StepOfLevelCrossing.searching_stop_sign.value
+            #     self.fnLaunch(self.Launcher.launch_control_lane.value, True)
+            #     self.fnLaunch(self.Launcher.launch_control_moving.value, False)
 
-                self.fnLaunch(self.Launcher.launch_control_lane.value, True)
-                self.fnLaunch(self.Launcher.launch_control_moving.value, False)
-
-                self.fnLaunch(self.Launcher.launch_detect_lane.value, True)
-                self.fnLaunch(self.Launcher.launch_detect_sign.value, False)
-                self.fnLaunch(self.Launcher.launch_detect_level.value, False)
+            #     self.fnLaunch(self.Launcher.launch_detect_lane.value, True)
+            #     self.fnLaunch(self.Launcher.launch_detect_sign.value, False)
+            #     self.fnLaunch(self.Launcher.launch_detect_level.value, False)
 
             rospy.sleep(2)
 
