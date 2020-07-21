@@ -88,7 +88,10 @@ class ControlIntersection():
         if order.data == self.StepOfIntersection.detect_intersection_sign.value:
             while True:
                 # print("orientation_w error, w: ", self.current_orientation_w)
-                if self.current_orientation_w <= 0.255 and self.current_orientation_w >= -0.255:
+                angle_range = 30
+                print(self.current_angle)
+                if(self.current_angle<180+angle_range and self.current_angle>180-angle_range):
+                # if self.current_orientation_w <= 0.255 and self.current_orientation_w >= -0.255:
                     break
 
             rospy.sleep(1)
@@ -102,7 +105,7 @@ class ControlIntersection():
             
             msg_moving = MovingParam()
             msg_moving.moving_type=2#left
-            msg_moving.moving_value_angular=20
+            msg_moving.moving_value_angular=25
             msg_moving.moving_value_linear=0.0
             self.pub_moving.publish(msg_moving)
             while True:
@@ -114,7 +117,7 @@ class ControlIntersection():
             msg_moving = MovingParam()
             msg_moving.moving_type=4
             msg_moving.moving_value_angular=0
-            msg_moving.moving_value_linear=0.2 #0.05 #NEW
+            msg_moving.moving_value_linear=0.1 #0.05 #NEW
             self.pub_moving.publish(msg_moving)
             while True:
                 if self.is_moving_complete == True:
@@ -187,7 +190,7 @@ class ControlIntersection():
             if(self.is_right_detected == True):
                 msg_moving = MovingParam()
                 msg_moving.moving_type=2#left
-                msg_moving.moving_value_angular=5
+                msg_moving.moving_value_angular=10
                 msg_moving.moving_value_linear=0.0
                 self.is_moving_complete=False
                 self.pub_moving.publish(msg_moving)
@@ -221,7 +224,7 @@ class ControlIntersection():
             elif(self.is_left_detected == True):
                 msg_moving = MovingParam()
                 msg_moving.moving_type=3#right
-                msg_moving.moving_value_angular=5
+                msg_moving.moving_value_angular=10
                 msg_moving.moving_value_linear=0.0
                 self.is_moving_complete=False
                 self.pub_moving.publish(msg_moving)
