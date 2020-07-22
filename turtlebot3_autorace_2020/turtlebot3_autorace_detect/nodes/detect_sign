@@ -18,12 +18,13 @@
 ################################################################################
 
 # Author: Leon Jung, Gilbert
-
-import rospy
+import tensorflow as tf
 import numpy as np
+import cv2
+import rospy
 import math
 import os
-import cv2
+
 from enum import Enum
 from std_msgs.msg import UInt8
 from sensor_msgs.msg import LaserScan, Image, CompressedImage
@@ -31,7 +32,6 @@ from cv_bridge import CvBridge, CvBridgeError
 
 class DetectSign():
     def __init__(self):
-        self.fnPreproc()
 
         self.sub_image_type = "raw" # you can choose image type "compressed", "raw"
         self.pub_image_type = "compressed" # you can choose image type "compressed", "raw"
@@ -41,7 +41,8 @@ class DetectSign():
             self.sub_image_original = rospy.Subscriber('/detect/image_input/compressed', CompressedImage, self.cbFindTrafficSign, queue_size = 1)
         elif self.sub_image_type == "raw":
             # subscribes raw image
-            self.sub_image_original = rospy.Subscriber('/detect/image_input', Image, self.cbFindTrafficSign, queue_size = 1)
+            # self.sub_image_original = rospy.Subscriber('/detect/image_input', Image, self.cbFindTrafficSign, queue_size = 1)
+            self.sub_image_original = rospy.Subscriber('/detect/image_sign', Image, self.cbFindTrafficSign, queue_size = 1)
 
         self.pub_traffic_sign = rospy.Publisher('/detect/traffic_sign', UInt8, queue_size=1)
 
@@ -76,7 +77,126 @@ class DetectSign():
 
         self.intersection_flag = 0
         self.counter = 1
+        self.check_model = False
+        self.load_model()
 
+    def load_model(self):
+        ###載入模型
+        # Import the TF graph
+        self.detect_graph = tf.Graph()
+        with self.detect_graph.as_default():
+            self.graph_def = tf.GraphDef()
+            with tf.gfile.FastGFile("model.pb", 'rb') as f:
+                self.graph_def.ParseFromString(f.read())
+                tf.import_graph_def(self.graph_def, name='')
+
+        # self.graph_base.get_default_graph()
+        ###載入標籤
+        # Create a list of labels.
+        self.labels = []
+        with open("labels.txt", 'rt') as lf:
+            for l in lf:
+                self.labels.append(l.strip())
+
+    def oprate(self, image):
+        if(self.check_model==False):
+            self.load_model()
+            self.check_model=True
+
+        ###協助程式函式
+        def crop_center(img,cropx,cropy):
+            h, w = img.shape[:2]
+            startx = w//2-(cropx//2)
+            starty = h//2-(cropy//2)
+            return img[starty:starty+cropy, startx:startx+cropx]
+
+        def resize_down_to_1600_max_dim(image):
+            h, w = image.shape[:2]
+            if (h < 1600 and w < 1600):
+                return image
+
+            new_size = (1600 * w // h, 1600) if (h > w) else (1600, 1600 * h // w)
+            return cv2.resize(image, new_size, interpolation = cv2.INTER_LINEAR)
+
+        def resize_to_256_square(image):
+            h, w = image.shape[:2]
+            return cv2.resize(image, (256, 256), interpolation = cv2.INTER_LINEAR)
+
+        ###處理維度 >1600 的影像
+        # If the image has either w or h greater than 1600 we resize it down respecting
+        # aspect ratio such that the largest dimension is 1600
+        image = resize_down_to_1600_max_dim(image)
+
+
+        ###裁剪中央最大的正方形
+        # We next get the largest center square
+        h, w = image.shape[:2]
+        min_dim = min(w,h)
+        max_square_image = crop_center(image, min_dim, min_dim)
+
+
+        ###將大小往下調整為 256x256
+        # Resize that square down to 256x256
+        augmented_image = resize_to_256_square(max_square_image)
+
+
+        ###裁剪模型特定輸入大小的中心
+        # The compact models have a network size of 227x227, the model requires this size.
+        network_input_size = 224
+
+        # Crop the center for the specified network_input_Size
+        augmented_image = crop_center(augmented_image, network_input_size, network_input_size)
+
+        ###預測影像
+        # These names are part of the model and cannot be changed.
+        output_layer = 'loss:0'
+        input_node = 'Placeholder:0'
+
+        with tf.Session(graph=self.detect_graph) as sess:
+            prob_tensor = self.detect_graph.get_tensor_by_name(output_layer)
+            predictions, = sess.run(prob_tensor, {input_node: [augmented_image] })
+
+            ###View the results
+            # Print the highest probability label
+
+            # Or you can print out all of the results mapping labels to probabilities.
+            # label_index = 0
+            # for p in predictions:
+            #     truncated_probablity = np.float64(round(p,8))
+            #     #print (labels[label_index],":%4f "%truncated_probablity,end=" | ")
+            #     print (self.labels[label_index],":%4f "%truncated_probablity)
+            #     label_index += 1
+            highest_probability_index = np.argmax(predictions)
+            truncated_probablity = np.float64(predictions[highest_probability_index])
+
+            if(truncated_probablity>0.9):
+                print('Classified as:' + self.labels[highest_probability_index],":%4f "%truncated_probablity)
+                # return self.labels[highest_probability_index]
+
+                msg_sign = UInt8()
+
+                if(highest_probability_index==0):
+                    msg_sign.data = self.TrafficSign.construction.value
+                    self.pub_traffic_sign.publish(msg_sign)
+                elif(highest_probability_index==1):
+                    msg_sign.data = self.TrafficSign.left.value
+                    self.pub_traffic_sign.publish(msg_sign)
+                elif(highest_probability_index==2):
+                    msg_sign.data = self.TrafficSign.parking.value
+                    self.pub_traffic_sign.publish(msg_sign)
+                elif(highest_probability_index==3):
+                    msg_sign.data = self.TrafficSign.right.value
+                    self.pub_traffic_sign.publish(msg_sign)
+                elif(highest_probability_index==4):
+                    msg_sign.data = self.TrafficSign.stop.value
+                    self.pub_traffic_sign.publish(msg_sign)
+                elif(highest_probability_index==5):
+                    msg_sign.data = self.TrafficSign.tunnel.value
+                    self.pub_traffic_sign.publish(msg_sign)
+                elif(highest_probability_index==6):
+                    msg_sign.data = self.TrafficSign.way.value
+                    self.pub_traffic_sign.publish(msg_sign)
+        
     def cbintertolevel(self, laser_msg):
         if laser_msg.data == 1:
             self.obs_flag = 1
@@ -107,41 +227,6 @@ class DetectSign():
             self.nostop = 1
             rospy.loginfo("nostop pls")
 
-    def fnPreproc(self):
-        # Initiate SIFT detector
-        self.sift = cv2.xfeatures2d.SIFT_create()
-
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        dir_path = dir_path.replace('turtlebot3_autorace_detect/nodes', 'turtlebot3_autorace_detect/')
-        dir_path += 'file/detect_sign/'
-
-        # level 2
-        self.img_way = cv2.imread(dir_path + 'way.png',0)
-        self.kp_way, self.des_way  = self.sift.detectAndCompute(self.img_way, None)
-        self.img_left  = cv2.imread(dir_path + 'left.png',0)
-        self.kp_left, self.des_left  = self.sift.detectAndCompute(self.img_left, None)
-        self.img_right = cv2.imread(dir_path + 'right.png',0)
-        self.kp_right, self.des_right = self.sift.detectAndCompute(self.img_right, None)
-        # level 3
-        self.img_construction  = cv2.imread(dir_path + 'construction.png',0)
-        self.kp_construction, self.des_construction  = self.sift.detectAndCompute(self.img_construction, None)
-        # level 4
-        self.img_parking = cv2.imread(dir_path + 'parking.png',0)
-        self.kp_parking, self.des_parking = self.sift.detectAndCompute(self.img_parking,None)
-        # level 5
-        self.img_stop = cv2.imread(dir_path + 'stop.png',0)
-        self.kp_stop, self.des_stop = self.sift.detectAndCompute(self.img_stop,None)
-        # level 6
-        self.img_tunnel = cv2.imread(dir_path + 'tunnel.png',0)
-        self.kp_tunnel, self.des_tunnel = self.sift.detectAndCompute(self.img_tunnel,None)
-
-
-        FLANN_INDEX_KDTREE = 0
-        index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-        search_params = dict(checks = 80)
-
-        self.flann = cv2.FlannBasedMatcher(index_params, search_params)
-
     def fnCalcMSE(self, arr1, arr2):
             squared_diff = (arr1 - arr2) ** 2
             sum = np.sum(squared_diff)
@@ -150,314 +235,15 @@ class DetectSign():
             return err
 
     def cbFindTrafficSign(self, image_msg):
-        # # drop the frame to 1/5 (6fps) because of the processing speed. This is up to your computer's operating power.
-        if self.counter % 3 != 0:
-            self.counter += 1
-            return
-        else:
-            self.counter = 1
-
         if self.sub_image_type == "compressed":
             #converting compressed image to opencv image
             np_arr = np.fromstring(image_msg.data, np.uint8)
             cv_image_input = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         elif self.sub_image_type == "raw":
             cv_image_input = self.cvBridge.imgmsg_to_cv2(image_msg, "bgr8")
+        if np.shape(cv_image_input) != ():
+            res = self.oprate(cv_image_input)
 
-        MIN_MATCH_COUNT = 10 #9
-        MIN_MSE_DECISION = 50000
-
-
-        # rospy.loginfo("obs_flag:%d",self.obs_flag )
-
-
-        # find the keypoints and descriptors with SIFT
-        kp1, des1 = self.sift.detectAndCompute(cv_image_input,None)
-
-        # matches2 = self.flann.knnMatch(des1,self.des2,k=2)
-        # matches3 = self.flann.knnMatch(des1,self.des3,k=2)
-        # matches4 = self.flann.knnMatch(des1,self.des4,k=2)
-
-        # level 2
-        matches_way = self.flann.knnMatch(des1,self.des_way,k=2)
-        matches_left = self.flann.knnMatch(des1,self.des_left,k=2)
-        matches_right = self.flann.knnMatch(des1,self.des_right,k=2)
-        # level 3
-        matches_construction = self.flann.knnMatch(des1,self.des_construction,k=2)
-        # level 4
-        matches_parking = self.flann.knnMatch(des1,self.des_parking,k=2)
-        # level 5
-        matches_stop = self.flann.knnMatch(des1,self.des_stop,k=2)
-        # level 6
-        matches_tunnel = self.flann.knnMatch(des1,self.des_tunnel,k=2)
-
-        image_out_num = 1
-
-        # if(self.intersection_flag == 1):
-        #     # level 2 left right
-        #     good_left = []
-        #     for m,n in matches_left:
-        #         if m.distance < 0.7 * n.distance:
-        #             good_left.append(m)
-        #     if len(good_left) > MIN_MATCH_COUNT:
-        #         src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_left ]).reshape(-1,1,2)
-        #         dst_pts = np.float32([ self.kp_left[m.trainIdx].pt for m in good_left ]).reshape(-1,1,2)
-        #         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-        #         matches_left = mask.ravel().tolist()
-        #         mse = self.fnCalcMSE(src_pts, dst_pts)
-        #         if mse < MIN_MSE_DECISION:
-        #             msg_sign = UInt8()
-        #             msg_sign.data = self.TrafficSign.left.value
-        #             self.pub_traffic_sign.publish(msg_sign)
-        #             self.intersection_flag = -1
-        #             rospy.loginfo("left")
-        #             image_out_num = 7
-        #     else:
-        #         matches_left = None
-
-            # good_right = []
-            # for m,n in matches_right:
-            #     if m.distance < 0.7 * n.distance:
-            #         good_right.append(m)
-            # if len(good_right) > MIN_MATCH_COUNT:
-            #     src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_right ]).reshape(-1,1,2)
-            #     dst_pts = np.float32([ self.kp_right[m.trainIdx].pt for m in good_right ]).reshape(-1,1,2)
-            #     M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-            #     matches_right = mask.ravel().tolist()
-            #     mse = self.fnCalcMSE(src_pts, dst_pts)
-            #     if mse < MIN_MSE_DECISION:
-            #         msg_sign = UInt8()
-            #         msg_sign.data = self.TrafficSign.right.value
-            #         self.pub_traffic_sign.publish(msg_sign)
-            #         self.intersection_flag = -1
-            #         rospy.loginfo("right")
-            #         image_out_num = 8
-            # else:
-            #     matches_right = None
-
-        if(self.obs_flag == 1):
-            if  self.is_obstacle_detected == 1:
-                msg_sign = UInt8()
-                msg_sign.data = self.TrafficSign.construction.value
-                self.pub_traffic_sign.publish(msg_sign)
-                self.intersection_flag = 0
-                rospy.loginfo(" force construction")
-                # image_out_num = 3
-
-        else:
-            # level 2
-            good_way = []
-            for m,n in matches_way:
-                if m.distance < 0.7 * n.distance:
-                    good_way.append(m)
-            if len(good_way) > MIN_MATCH_COUNT:
-                src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_way ]).reshape(-1,1,2)
-                dst_pts = np.float32([ self.kp_way[m.trainIdx].pt for m in good_way ]).reshape(-1,1,2)
-                M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-                matches_way = mask.ravel().tolist()
-                mse = self.fnCalcMSE(src_pts, dst_pts)
-                if mse < MIN_MSE_DECISION:
-                    if self.nointer == 0:
-                        msg_sign = UInt8()
-                        msg_sign.data = self.TrafficSign.way.value
-                        self.pub_traffic_sign.publish(msg_sign)
-                        self.intersection_flag = 1
-                        rospy.loginfo("way")
-                        image_out_num = 2
-                    else: 
-                        pass
-            else:
-                matches_way = None
-            # level 3
-            good_construction = []
-            for m,n in matches_construction:
-                if m.distance < 0.7 * n.distance:
-                    good_construction.append(m)
-            if len(good_construction) > MIN_MATCH_COUNT:
-                src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_construction ]).reshape(-1,1,2)
-                dst_pts = np.float32([ self.kp_construction[m.trainIdx].pt for m in good_construction ]).reshape(-1,1,2)
-                M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-                matches_construction = mask.ravel().tolist()
-                mse = self.fnCalcMSE(src_pts, dst_pts)
-                if mse < MIN_MSE_DECISION:
-                    if self.nointer == 0:
-                        msg_sign = UInt8()
-                        msg_sign.data = self.TrafficSign.construction.value
-                        self.pub_traffic_sign.publish(msg_sign)
-                        self.intersection_flag = 0
-                        rospy.loginfo("construction")
-                        image_out_num = 3
-                    else:
-                        pass
-            else:
-                matches_construction = None
-            # # level 4
-            # good_parking = []
-            # for m,n in matches_parking:
-            #     if m.distance < 0.7 * n.distance:
-            #         good_parking.append(m)
-            # if len(good_parking) > MIN_MATCH_COUNT:
-            #     src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_parking ]).reshape(-1,1,2)
-            #     dst_pts = np.float32([ self.kp_parking[m.trainIdx].pt for m in good_parking ]).reshape(-1,1,2)
-            #     M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-            #     matches_parking = mask.ravel().tolist()
-            #     mse = self.fnCalcMSE(src_pts, dst_pts)
-            #     if mse < MIN_MSE_DECISION:
-            #         msg_sign = UInt8()
-            #         msg_sign.data = self.TrafficSign.parking.value
-            #         self.pub_traffic_sign.publish(msg_sign)
-            #         self.intersection_flag = 0
-            #         rospy.loginfo("parking")
-            #         image_out_num = 4
-            # else:
-            #     matches_parking = None
-            # level 5
-            good_stop = []
-            for m,n in matches_stop:
-                if m.distance < 0.7 * n.distance:
-                    good_stop.append(m)
-            if len(good_stop) > MIN_MATCH_COUNT:
-                src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_stop ]).reshape(-1,1,2)
-                dst_pts = np.float32([ self.kp_stop[m.trainIdx].pt for m in good_stop ]).reshape(-1,1,2)
-                M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-                matches_stop = mask.ravel().tolist()
-                mse = self.fnCalcMSE(src_pts, dst_pts)
-                if mse < MIN_MSE_DECISION:
-                    if  self.noconst == 0:
-                        msg_sign = UInt8()
-                        msg_sign.data = self.TrafficSign.stop.value
-                        self.pub_traffic_sign.publish(msg_sign)
-                        self.intersection_flag = 0
-                        rospy.loginfo("stop")
-                        image_out_num = 5
-                    else:
-                        pass
-            else:
-                matches_stop = None
-            # level 6
-            good_tunnel = []
-            for m,n in matches_tunnel:
-                if m.distance < 0.8 * n.distance:
-                    good_tunnel.append(m)
-            if len(good_tunnel) > MIN_MATCH_COUNT:
-                src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_tunnel ]).reshape(-1,1,2)
-                dst_pts = np.float32([ self.kp_tunnel[m.trainIdx].pt for m in good_tunnel ]).reshape(-1,1,2)
-                M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-                matches_tunnel = mask.ravel().tolist()
-                mse = self.fnCalcMSE(src_pts, dst_pts)
-                if mse < MIN_MSE_DECISION:
-                    if  self.nostop == 1:
-                        msg_sign = UInt8()
-                        msg_sign.data = self.TrafficSign.tunnel.value
-                        self.pub_traffic_sign.publish(msg_sign)
-                        self.intersection_flag = 0
-                        rospy.loginfo("tunnel")
-                        image_out_num = 6
-                    else:
-                        pass
-            else:
-                matches_tunnel = None
-
-
-        if image_out_num == 1:
-            if self.pub_image_type == "compressed":
-                # publishes traffic sign image in compressed type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_compressed_imgmsg(cv_image_input, "jpg"))
-
-            elif self.pub_image_type == "raw":
-                # publishes traffic sign image in raw type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_imgmsg(cv_image_input, "bgr8"))
-
-        elif image_out_num == 2:
-            draw_params2 = dict(matchColor = (0,0,255), # draw matches in green color
-                            singlePointColor = None,
-                            matchesMask = matches_way, # draw only inliers
-                            flags = 2)
-            final_way = cv2.drawMatches(cv_image_input,kp1,self.img_way,self.kp_way,good_way,None,**draw_params2)
-            if self.pub_image_type == "compressed":
-                # publishes traffic sign image in compressed type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_compressed_imgmsg(final_way, "jpg"))
-            elif self.pub_image_type == "raw":
-                # publishes traffic sign image in raw type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_imgmsg(final_way, "bgr8"))
-
-        elif image_out_num == 3:
-            draw_params2 = dict(matchColor = (0,0,255), # draw matches in green color
-                            singlePointColor = None,
-                            matchesMask = matches_construction, # draw only inliers
-                            flags = 2)
-            final_construction = cv2.drawMatches(cv_image_input,kp1,self.img_construction,self.kp_construction,good_construction,None,**draw_params2)
-            if self.pub_image_type == "compressed":
-                # publishes traffic sign image in compressed type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_compressed_imgmsg(final_construction, "jpg"))
-            elif self.pub_image_type == "raw":
-                # publishes traffic sign image in raw type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_imgmsg(final_construction, "bgr8"))
-
-        # elif image_out_num == 4:
-        #     draw_params2 = dict(matchColor = (0,0,255), # draw matches in green color
-        #                     singlePointColor = None,
-        #                     matchesMask = matches_parking, # draw only inliers
-        #                     flags = 2)
-        #     final_parking = cv2.drawMatches(cv_image_input,kp1,self.img_parking,self.kp_parking,good_parking,None,**draw_params2)
-        #     if self.pub_image_type == "compressed":
-        #         # publishes traffic sign image in compressed type
-        #         self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_compressed_imgmsg(final_parking, "jpg"))
-        #     elif self.pub_image_type == "raw":
-        #         # publishes traffic sign image in raw type
-        #         self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_imgmsg(final_parking, "bgr8"))
-
-        elif image_out_num == 5:
-            draw_params2 = dict(matchColor = (0,0,255), # draw matches in green color
-                            singlePointColor = None,
-                            matchesMask = matches_stop, # draw only inliers
-                            flags = 2)
-            final_stop = cv2.drawMatches(cv_image_input,kp1,self.img_stop,self.kp_stop,good_stop,None,**draw_params2)
-            if self.pub_image_type == "compressed":
-                # publishes traffic sign image in compressed type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_compressed_imgmsg(final_stop, "jpg"))
-            elif self.pub_image_type == "raw":
-                # publishes traffic sign image in raw type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_imgmsg(final_stop, "bgr8"))
-
-        elif image_out_num == 6:
-            draw_params2 = dict(matchColor = (0,0,255), # draw matches in green color
-                            singlePointColor = None,
-                            matchesMask = matches_tunnel, # draw only inliers
-                            flags = 2)
-            final_tunnel = cv2.drawMatches(cv_image_input,kp1,self.img_tunnel,self.kp_tunnel,good_tunnel,None,**draw_params2)
-            if self.pub_image_type == "compressed":
-                # publishes traffic sign image in compressed type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_compressed_imgmsg(final_tunnel, "jpg"))
-            elif self.pub_image_type == "raw":
-                # publishes traffic sign image in raw type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_imgmsg(final_tunnel, "bgr8"))
-
-        elif image_out_num == 7:
-            draw_params2 = dict(matchColor = (0,0,255), # draw matches in green color
-                            singlePointColor = None,
-                            matchesMask = matches_left, # draw only inliers
-                            flags = 2)
-            final_left = cv2.drawMatches(cv_image_input,kp1,self.img_left,self.kp_left,good_left,None,**draw_params2)
-            if self.pub_image_type == "compressed":
-                # publishes traffic sign image in compressed type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_compressed_imgmsg(final_left, "jpg"))
-            elif self.pub_image_type == "raw":
-                # publishes traffic sign image in raw type
-                self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_imgmsg(final_left, "bgr8"))
-
-        # elif image_out_num == 8:
-        #     draw_params2 = dict(matchColor = (0,0,255), # draw matches in green color
-        #                     singlePointColor = None,
-        #                     matchesMask = matches_right, # draw only inliers
-        #                     flags = 2)
-        #     final_right = cv2.drawMatches(cv_image_input,kp1,self.img_right,self.kp_right,good_right,None,**draw_params2)
-        #     if self.pub_image_type == "compressed":
-        #         # publishes traffic sign image in compressed type
-        #         self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_compressed_imgmsg(final_right, "jpg"))
-        #     elif self.pub_image_type == "raw":
-        #         # publishes traffic sign image in raw type
-        #         self.pub_image_traffic_sign.publish(self.cvBridge.cv2_to_imgmsg(final_right, "bgr8"))
     ###add for scan obs
     def cbScanObstacle(self, scan):
         if self.obs_flag == 1:
@@ -479,25 +265,10 @@ class DetectSign():
         rospy.spin()
 
 if __name__ == '__main__':
+    # img = cv2.imread("88.png")
+    # cv2.imshow("test",img)
+    # cv2.waitKey(1000)
+    # res = oprate(img)
     rospy.init_node('detect_sign')
     node = DetectSign()
     node.main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
