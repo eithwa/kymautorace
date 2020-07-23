@@ -480,8 +480,8 @@ class DetectSign():
 
 if __name__ == '__main__':
     rospy.init_node('detect_sign')
-    node = DetectSign()
-    node.main()
+    # node = DetectSign()
+    # node.main()
 
 
 

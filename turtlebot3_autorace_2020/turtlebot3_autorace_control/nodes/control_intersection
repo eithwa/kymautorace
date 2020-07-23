@@ -89,7 +89,7 @@ class ControlIntersection():
             while True:
                 # print("orientation_w error, w: ", self.current_orientation_w)
                 angle_range = 30
-                print(self.current_angle)
+                # print(self.current_angle)
                 if(self.current_angle<180+angle_range and self.current_angle>180-angle_range):
                 # if self.current_orientation_w <= 0.255 and self.current_orientation_w >= -0.255:
                     break
