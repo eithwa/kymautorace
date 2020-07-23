@@ -89,7 +89,8 @@ class DetectSign():
             with tf.gfile.FastGFile("model.pb", 'rb') as f:
                 self.graph_def.ParseFromString(f.read())
                 tf.import_graph_def(self.graph_def, name='')
-
+        
+        self.sess = tf.Session(graph=self.detect_graph)
         # self.graph_base.get_default_graph()
         ###載入標籤
         # Create a list of labels.
@@ -152,50 +153,50 @@ class DetectSign():
         output_layer = 'loss:0'
         input_node = 'Placeholder:0'
 
-        with tf.Session(graph=self.detect_graph) as sess:
-            prob_tensor = self.detect_graph.get_tensor_by_name(output_layer)
-            predictions, = sess.run(prob_tensor, {input_node: [augmented_image] })
+        # with tf.Session(graph=self.detect_graph) as sess:
+        prob_tensor = self.detect_graph.get_tensor_by_name(output_layer)
+        predictions, = self.sess.run(prob_tensor, {input_node: [augmented_image] })
 
-            ###View the results
-            # Print the highest probability label
+        ###View the results
+        # Print the highest probability label
 
-            # Or you can print out all of the results mapping labels to probabilities.
-            # label_index = 0
-            # for p in predictions:
-            #     truncated_probablity = np.float64(round(p,8))
-            #     #print (labels[label_index],":%4f "%truncated_probablity,end=" | ")
-            #     print (self.labels[label_index],":%4f "%truncated_probablity)
-            #     label_index += 1
-            highest_probability_index = np.argmax(predictions)
-            truncated_probablity = np.float64(predictions[highest_probability_index])
+        # Or you can print out all of the results mapping labels to probabilities.
+        # label_index = 0
+        # for p in predictions:
+        #     truncated_probablity = np.float64(round(p,8))
+        #     #print (labels[label_index],":%4f "%truncated_probablity,end=" | ")
+        #     print (self.labels[label_index],":%4f "%truncated_probablity)
+        #     label_index += 1
+        highest_probability_index = np.argmax(predictions)
+        truncated_probablity = np.float64(predictions[highest_probability_index])
 
-            if(truncated_probablity>0.9):
-                print('Classified as:' + self.labels[highest_probability_index],":%4f "%truncated_probablity)
-                # return self.labels[highest_probability_index]
+        if(truncated_probablity>0.8):
+            print('Classified as:' + self.labels[highest_probability_index],":%4f "%truncated_probablity)
+            # return self.labels[highest_probability_index]
 
-                msg_sign = UInt8()
+            msg_sign = UInt8()
 
-                if(highest_probability_index==0):
-                    msg_sign.data = self.TrafficSign.construction.value
-                    self.pub_traffic_sign.publish(msg_sign)
-                elif(highest_probability_index==1):
-                    msg_sign.data = self.TrafficSign.left.value
-                    self.pub_traffic_sign.publish(msg_sign)
-                elif(highest_probability_index==2):
-                    msg_sign.data = self.TrafficSign.parking.value
-                    self.pub_traffic_sign.publish(msg_sign)
-                elif(highest_probability_index==3):
-                    msg_sign.data = self.TrafficSign.right.value
-                    self.pub_traffic_sign.publish(msg_sign)
-                elif(highest_probability_index==4):
-                    msg_sign.data = self.TrafficSign.stop.value
-                    self.pub_traffic_sign.publish(msg_sign)
-                elif(highest_probability_index==5):
-                    msg_sign.data = self.TrafficSign.tunnel.value
-                    self.pub_traffic_sign.publish(msg_sign)
-                elif(highest_probability_index==6):
-                    msg_sign.data = self.TrafficSign.way.value
-                    self.pub_traffic_sign.publish(msg_sign)
+            if(highest_probability_index==0):
+                msg_sign.data = self.TrafficSign.construction.value
+                self.pub_traffic_sign.publish(msg_sign)
+            elif(highest_probability_index==1):
+                msg_sign.data = self.TrafficSign.left.value
+                self.pub_traffic_sign.publish(msg_sign)
+            elif(highest_probability_index==2):
+                msg_sign.data = self.TrafficSign.parking.value
+                self.pub_traffic_sign.publish(msg_sign)
+            elif(highest_probability_index==3):
+                msg_sign.data = self.TrafficSign.right.value
+                self.pub_traffic_sign.publish(msg_sign)
+            elif(highest_probability_index==4):
+                msg_sign.data = self.TrafficSign.stop.value
+                self.pub_traffic_sign.publish(msg_sign)
+            elif(highest_probability_index==5):
+                msg_sign.data = self.TrafficSign.tunnel.value
+                self.pub_traffic_sign.publish(msg_sign)
+            elif(highest_probability_index==6):
+                msg_sign.data = self.TrafficSign.way.value
+                self.pub_traffic_sign.publish(msg_sign)
         
     def cbintertolevel(self, laser_msg):
         if laser_msg.data == 1:

@@ -8,5 +8,5 @@
   <!--node name="mjpeg_server" pkg="mjpeg_server" type="mjpeg_server" respawn="true" respawn_delay="2"/-->
   <!--include file="$(find raspicam_node)/launch/camerav2_410x308_30fps.launch" /-->
   <!--<node name="usb_cam" pkg="usb_cam" type="usb_cam_node" respawn="true" respawn_delay="5"/>-->
-  <!--<node name="image_converter" pkg="vision" type="image_converter" respawn="true" respawn_delay="5"/>-->
+  <node name="image_converter" pkg="vision" type="image_converter" respawn="true" respawn_delay="5"/>
 </launch>

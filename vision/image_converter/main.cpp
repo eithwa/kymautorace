@@ -10,7 +10,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "image_converter");
     ros::NodeHandle h_node;
     //signal(SIGINT, SigintHandler);
-    ros::Rate loop_rate(3); //program speed limit
+    ros::Rate loop_rate(10); //program speed limit
     
     Vision cam;
     //Vision cam("/usb_cam/image_raw");

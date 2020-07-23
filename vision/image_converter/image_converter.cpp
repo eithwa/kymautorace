@@ -550,7 +550,7 @@ Object Vision::SearchObject(Mat mask, vector<int> setting)
                 }
             }
             ball.rect=image.clone();
-            // imwrite(X, image);
+            //imwrite(X, image);
 
            //==========
         }
