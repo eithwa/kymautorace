@@ -37,6 +37,23 @@ class DetectParking():
     def __init__(self):
         self.sub_image_type = "raw"         # "compressed" / "raw"
         self.pub_image_type = "raw"         # "compressed" / "raw"
+         #==========
+        self.hue_white_l = rospy.get_param("detect/lane/white/hue_l", 0)
+        self.hue_white_h = rospy.get_param("detect/lane/white/hue_h", 163)
+        self.saturation_white_l = rospy.get_param("detect/lane/white/saturation_l", 6)
+        self.saturation_white_h = rospy.get_param("detect/lane/white/saturation_h", 90)
+        self.lightness_white_l = rospy.get_param("detect/lane/white/lightness_l", 191)
+        self.lightness_white_h = rospy.get_param("detect/lane/white/lightness_h", 255)
+
+        self.hue_yellow_l = rospy.get_param("detect/lane/yellow/hue_l", 0)
+        self.hue_yellow_h = rospy.get_param("detect/lane/yellow/hue_h", 179)
+        self.saturation_yellow_l = rospy.get_param("detect/lane/yellow/saturation_l", 145)
+        self.saturation_yellow_h = rospy.get_param("detect/lane/yellow/saturation_h", 255)
+        self.lightness_yellow_l = rospy.get_param("detect/lane/yellow/lightness_l", 81)
+        self.lightness_yellow_h = rospy.get_param("detect/lane/yellow/lightness_h", 255)
+        #==========
+        self.start_obstacle_detection = False
+        self.cvBridge = CvBridge()
 
         self.sub_parking_lot_order = rospy.Subscriber('/detect/parking_lot_order', UInt8, self.cbParkingLotOrder, queue_size=1)
         self.sub_scan_obstacle = rospy.Subscriber('/detect/scan', LaserScan, self.cbScanObstacle, queue_size=1)
@@ -64,12 +81,10 @@ class DetectParking():
 
         self.StepOfParkingLot = Enum('StepOfParkingLot', 'searching_parking_sign searching_parking_point_line searching_nonreserved_parking_area parking')
 
-        self.start_obstacle_detection = False
-
         self.is_obstacle_detected_R = False
         self.is_obstacle_detected_L = False
 
-        self.cvBridge = CvBridge()
+        
         self.cv_image_p = None
 
         self.is_parking_allowed = False
@@ -85,24 +100,9 @@ class DetectParking():
         dir_path += 'file/detect_parking/'
         self.img1 = cv2.imread(dir_path + 'parking_not_allowed.png', -1)
         self.img2 = cv2.imread(dir_path + 'parking_allowed.png', -1)
-
-        #==========
-        self.hue_white_l = rospy.get_param("detect/lane/white/hue_l", 0)
-        self.hue_white_h = rospy.get_param("detect/lane/white/hue_h", 163)
-        self.saturation_white_l = rospy.get_param("detect/lane/white/saturation_l", 6)
-        self.saturation_white_h = rospy.get_param("detect/lane/white/saturation_h", 90)
-        self.lightness_white_l = rospy.get_param("detect/lane/white/lightness_l", 191)
-        self.lightness_white_h = rospy.get_param("detect/lane/white/lightness_h", 255)
-
-        self.hue_yellow_l = rospy.get_param("detect/lane/yellow/hue_l", 0)
-        self.hue_yellow_h = rospy.get_param("detect/lane/yellow/hue_h", 179)
-        self.saturation_yellow_l = rospy.get_param("detect/lane/yellow/saturation_l", 145)
-        self.saturation_yellow_h = rospy.get_param("detect/lane/yellow/saturation_h", 255)
-        self.lightness_yellow_l = rospy.get_param("detect/lane/yellow/lightness_l", 81)
-        self.lightness_yellow_h = rospy.get_param("detect/lane/yellow/lightness_h", 255)
        
         self.turn_into_parking_log=False
-        #==========
+       
 
     def maskYellowLane(self, image):
         # Convert BGR to HSV
@@ -215,7 +215,7 @@ class DetectParking():
             msg_moving = MovingParam()
             msg_moving.moving_type= 4
             msg_moving.moving_value_angular=0.0
-            msg_moving.moving_value_linear=0.15
+            msg_moving.moving_value_linear=0.10
             self.pub_moving.publish(msg_moving)
             while True:
                 if self.is_moving_complete == True:
@@ -326,6 +326,15 @@ class DetectParking():
                 self.is_moving_complete = False
                 rospy.sleep(0.5)   
      
+                msg_moving.moving_type= 4
+                msg_moving.moving_value_angular=0.0
+                msg_moving.moving_value_linear=0.15
+                self.pub_moving.publish(msg_moving)
+                while True:
+                    if self.is_moving_complete == True:
+                        break
+                self.is_moving_complete = False
+                rospy.sleep(0.5)
             
             elif self.is_obstacle_detected_L == False:
                 rospy.loginfo("left parking lot is clear")
@@ -375,13 +384,13 @@ class DetectParking():
             
                 msg_moving.moving_type= 4
                 msg_moving.moving_value_angular=0.0
-                msg_moving.moving_value_linear=0.9
+                msg_moving.moving_value_linear=0.95
                 self.pub_moving.publish(msg_moving)
                 while True:
                     if self.is_moving_complete == True:
                         break
                 self.is_moving_complete = False
-                rospy.sleep(2)
+                rospy.sleep(0.5)
 
                 rospy.loginfo("left parking lot Finish")
                 msg_moving.moving_type=2
@@ -392,7 +401,17 @@ class DetectParking():
                     if self.is_moving_complete == True:
                         break
                 self.is_moving_complete = False
-                rospy.sleep(1)       
+                rospy.sleep(1)
+
+                msg_moving.moving_type= 4
+                msg_moving.moving_value_angular=0.0
+                msg_moving.moving_value_linear=0.05
+                self.pub_moving.publish(msg_moving)
+                while True:
+                    if self.is_moving_complete == True:
+                        break
+                self.is_moving_complete = False
+                rospy.sleep(0.5)
 
             rospy.loginfo("parking finished")
             msg_pub_parking_lot_return.data = self.StepOfParkingLot.parking.value

@@ -27,6 +27,7 @@ from std_msgs.msg import UInt8, Float64
 from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge, CvBridgeError
 from dynamic_reconfigure.server import Server
+from turtlebot3_autorace_msgs.msg import MovingParam
 from turtlebot3_autorace_detect.cfg import DetectTrafficLightParamsConfig
 
 class DetectTrafficLight():
@@ -92,7 +93,8 @@ class DetectTrafficLight():
         self.pub_traffic_light_return = rospy.Publisher('/detect/traffic_light_stamped', UInt8, queue_size=1)
         self.pub_parking_start = rospy.Publisher('/control/traffic_light_start', UInt8, queue_size = 1)
         self.pub_max_vel = rospy.Publisher('/control/max_vel', Float64, queue_size = 1)
-
+        self.pub_moving = rospy.Publisher('/control/moving/state', MovingParam, queue_size= 1)
+        self.sub_moving_completed = rospy.Subscriber('/control/moving/complete', UInt8, self.cbMovingComplete, queue_size = 1)
 
         self.pub_traffic_light = rospy.Publisher('/detect/traffic_light', UInt8, queue_size=1)
 
@@ -115,6 +117,7 @@ class DetectTrafficLight():
         self.stop_count = 0
         self.off_traffic = False
         self.image_update = False
+        self.is_moving_complete = False
         #===
         #dectect area is cv2.rectangle(self.cv_image,(top_x,top_y),(bottom_x,bottom_y),(255, 0, 0),2)
         self.top_x = 200
@@ -132,6 +135,9 @@ class DetectTrafficLight():
                     self.image_update = False
                     
             loop_rate.sleep()
+
+    def cbMovingComplete(self, data):
+        self.is_moving_complete = True
 
     def cbGetDetectTrafficLightParam(self, config, level):
         rospy.loginfo("[Detect Traffic Light] Detect Traffic Light Calibration Parameter reconfigured to")
@@ -243,6 +249,19 @@ class DetectTrafficLight():
             if(self.is_calibration_mode == False):
                 msg_sign = UInt8()
                 msg_sign.data = self.CurrentMode.lane_following.value
+                #==========move straight
+                rospy.loginfo("doing motion_str")
+                msg_moving = MovingParam()
+                msg_moving.moving_type= 4
+                msg_moving.moving_value_angular=0.0
+                msg_moving.moving_value_linear=0.15
+                self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
+                while True:
+                    if self.is_moving_complete == True:
+                        break
+                rospy.sleep(0.5)
+                #================
                 self.pub_traffic_light.publish(msg_sign)
                 self.is_traffic_light_finished = True          
 

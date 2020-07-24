@@ -43,10 +43,10 @@ class ImageProjection():
 
         if self.sub_image_type == "compressed":
             # subscribes compressed image 
-            self.sub_image_original = rospy.Subscriber('/camera/image_input/compressed', CompressedImage, self.cbImageProjection, queue_size=1)
+            self.sub_image_original = rospy.Subscriber('/camera/image_input/compressed', CompressedImage, self.cbImageProjection, queue_size=1, buff_size=2**24)
         elif self.sub_image_type == "raw":
             # subscribes raw image 
-            self.sub_image_original = rospy.Subscriber('/camera/image_input', Image, self.cbImageProjection, queue_size=1)
+            self.sub_image_original = rospy.Subscriber('/camera/image_input', Image, self.cbImageProjection, queue_size=1, buff_size=2**24)
 
         if self.pub_image_type == "compressed":
             # publishes ground-project image in compressed type 
@@ -64,7 +64,7 @@ class ImageProjection():
                 self.pub_image_calib = rospy.Publisher('/camera/image_calib', Image, queue_size=1)
 
         self.cvBridge = CvBridge()
-
+        self.counter=0
 
     def cbGetImageProjectionParam(self, config, level):
         rospy.loginfo("[Image Projection] Extrinsic Camera Calibration Parameter reconfigured to")
@@ -78,6 +78,13 @@ class ImageProjection():
         return config
 
     def cbImageProjection(self, msg_img):
+        #=====without this will delay
+        if self.counter % 3 != 0:
+            self.counter += 1
+            return
+        else:
+            self.counter = 1
+        #============
         if self.sub_image_type == "compressed":
             # converts compressed image to opencv image
             np_image_original = np.fromstring(msg_img.data, np.uint8)
@@ -120,8 +127,8 @@ class ImageProjection():
 
         # selecting 4 points from image that will be transformed
         # pts_dst = np.array([[200, 0], [800, 0], [800, 600], [200, 600]])
-        pts_dst = np.array([[200, -800], [800, -800], [700, 600], [300, 600]])
-        # pts_dst = np.array([[250, 0], [750, 0], [750, 600], [250, 600]])
+        pts_dst = np.array([[300, -200], [700, -200], [700, 600], [300, 600]])
+        # pts_dst = np.array([[300, 0], [700, 0], [700, 600], [300, 600]])
 
         # finding homography matrix
         h, status = cv2.findHomography(pts_src, pts_dst)

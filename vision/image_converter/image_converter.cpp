@@ -117,7 +117,8 @@ void Vision::imageCb(const sensor_msgs::ImageConstPtr& msg)
                 break;
             }
             pub_src(frame);
-            pub_mask(mask);
+            pub_mask(red.mask);
+            pub_mask2(blue.mask);
             pub_monitor(monitor);
             pub_fps(FrameRate);
 

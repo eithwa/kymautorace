@@ -90,7 +90,7 @@ class DetectSign():
 
         # get the file path for rospy_tutorials
         path = rospack.get_path('turtlebot3_autorace_detect')
-        print("path",path)
+        # print("path",path)
         path += "/costom_vision"
 
         ###載入模型
@@ -254,8 +254,8 @@ class DetectSign():
             cv_image_input = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         elif self.sub_image_type == "raw":
             cv_image_input = self.cvBridge.imgmsg_to_cv2(image_msg, "bgr8")
-        # if np.shape(cv_image_input) != ():
-        #     res = self.oprate(cv_image_input)
+        if np.shape(cv_image_input) != ():
+            res = self.oprate(cv_image_input)
 
     ###add for scan obs
     def cbScanObstacle(self, scan):

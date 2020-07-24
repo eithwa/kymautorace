@@ -173,7 +173,7 @@ class DetectContruction():
             rospy.loginfo("doing motion_str4")
             msg_moving.moving_type=4
             msg_moving.moving_value_angular=0.0
-            msg_moving.moving_value_linear=0.30#0.4
+            msg_moving.moving_value_linear=0.35#0.4
             self.pub_moving.publish(msg_moving)
             while True:
                 if self.is_moving_complete == True:
@@ -198,7 +198,7 @@ class DetectContruction():
 
             msg_moving.moving_type=4
             msg_moving.moving_value_angular=0.0
-            msg_moving.moving_value_linear=0.25 #0.5
+            msg_moving.moving_value_linear=0.05 #0.5
             self.pub_moving.publish(msg_moving)
             while True:
                 if self.is_moving_complete == True:
@@ -208,7 +208,7 @@ class DetectContruction():
 
             msg_pub_construction_return.data = self.StepOfConstruction.motion_lf.value        
 
-            rospy.sleep(3)
+            # rospy.sleep(3)
 
         elif order.data == self.StepOfConstruction.exit.value:
 

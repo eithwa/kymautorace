@@ -65,9 +65,11 @@ class CoreModeDecider():
         rospy.loginfo("Traffic light detected")
 
     def cbInvokedByTrafficSign(self, traffic_sign_type_msg):
-        rospy.loginfo("invoke sign")
+        # rospy.loginfo("invoke sign")
+        if self.current_mode != self.CurrentMode.lane_following.value:
+            return
         self.fnDecideMode(self.InvokedObject.traffic_sign.value, traffic_sign_type_msg)
-        rospy.loginfo("Traffic sign detected")
+        # rospy.loginfo("Traffic sign detected")
 
     def cbNoMoreIntersection(self,no_inter_msg):
         if no_inter_msg.data == 1:
@@ -103,21 +105,23 @@ class CoreModeDecider():
         #     rospy.loginfo("force lev")
 
         # else:
+        
         self.current_mode = self.CurrentMode.lane_following.value
-
         self.fnPublishMode()
 
     def fnInitSelf(self):
         rospy.loginfo("Init")
-        # self.current_mode = self.CurrentMode.traffic_light.value
-        # rospy.loginfo("Current Mode : Traffic Light")
-        self.current_mode = self.CurrentMode.lane_following.value
-        rospy.loginfo("Current Mode : lane_following")
+        self.current_mode = self.CurrentMode.traffic_light.value
+        rospy.loginfo("Current Mode : Traffic Light")
+        # self.current_mode = self.CurrentMode.lane_following.value
+        # rospy.loginfo("Current Mode : lane_following")
 
     def fnDecideMode(self, invoked_object, msg_data):                        # starts only when the traffic sign / traffic light is detected & current_mode is lane_following
         # print("self.current_mode", self.current_mode)
         # print("msg_data.data", msg_data.data)
+
         if self.current_mode == self.CurrentMode.lane_following.value:
+            print("lane following")
             if invoked_object == self.InvokedObject.traffic_sign.value:      # Any Sign detected
                 if msg_data.data == self.TrafficSign.way.value:              # way Sign detected
                     if self.nointer == 0:
@@ -138,6 +142,7 @@ class CoreModeDecider():
                 #     else:
                 #         pass
                 elif msg_data.data == self.TrafficSign.construction.value:   # construction sign deteced
+                    
                     if self.noconst == 0 :
                         self.current_mode = self.CurrentMode.construction.value
                         rospy.loginfo("currentmode : construction detected")

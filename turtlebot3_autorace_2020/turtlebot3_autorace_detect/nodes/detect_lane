@@ -59,10 +59,10 @@ class DetectLane():
 
         if self.sub_image_type == "compressed":
             # subscribes compressed image
-            self.sub_image_original = rospy.Subscriber('/detect/image_input/compressed', CompressedImage, self.cbFindLane, queue_size = 1)
+            self.sub_image_original = rospy.Subscriber('/detect/image_input/compressed', CompressedImage, self.cbFindLane, queue_size = 1, buff_size=2**24)
         elif self.sub_image_type == "raw":
             # subscribes raw image
-            self.sub_image_original = rospy.Subscriber('/detect/image_input', Image, self.cbFindLane, queue_size = 1)
+            self.sub_image_original = rospy.Subscriber('/detect/image_input', Image, self.cbFindLane, queue_size = 1, buff_size=2**24)
 
         if self.pub_image_type == "compressed":
             # publishes lane image in compressed type 
@@ -135,11 +135,11 @@ class DetectLane():
         # Change the frame rate by yourself. Now, it is set to 1/3 (10fps). 
         # Unappropriate value of frame rate may cause huge delay on entire recognition process.
         # This is up to your computer's operating power.
-        if self.counter % 3 != 0:
-            self.counter += 1
-            return
-        else:
-            self.counter = 1
+        # if self.counter % 3 != 0:
+        #     self.counter += 1
+        #     return
+        # else:
+        #     self.counter = 1
 
         if self.sub_image_type == "compressed":
             #converting compressed image to opencv image

@@ -33,7 +33,8 @@ from turtlebot3_autorace_msgs.msg import MovingParam
 
 class ControlIntersection():
     def __init__(self):
-
+        self.right_cnt=0
+        self.left_cnt=0
         # subscribes state : white line reliability
         self.sub_intersection_order = rospy.Subscriber('/detect/intersection_order', UInt8, self.cbIntersectionOrder, queue_size=1)
         self.sub_moving_completed = rospy.Subscriber('/control/moving/complete', UInt8, self.cbMovingComplete, queue_size = 1)
@@ -68,15 +69,21 @@ class ControlIntersection():
         # print("degrees", self.current_angle)
 
     def cbInvokedByTrafficSign(self, traffic_sign_type_msg):
+        if(self.is_left_detected==True or self.is_right_detected==True):
+            return
         if traffic_sign_type_msg.data == self.TrafficSign.left.value:
-            rospy.loginfo("left detected")
-            self.is_left_detected = True
-            self.is_right_detected = False
+            self.left_cnt+=1
+            if(self.left_cnt>3):
+                rospy.loginfo("left detected")
+                self.is_left_detected = True
+                self.is_right_detected = False
 
-        elif traffic_sign_type_msg.data == self.TrafficSign.right.value:  
-            rospy.loginfo("right detected")
-            self.is_right_detected = True
-            self.is_left_detected = False
+        elif traffic_sign_type_msg.data == self.TrafficSign.right.value:
+            self.right_cnt+=1
+            if(self.right_cnt>3):  
+                rospy.loginfo("right detected")
+                self.is_right_detected = True
+                self.is_left_detected = False
 
     def cbMovingComplete(self, data):
         self.is_moving_complete = True
@@ -90,7 +97,7 @@ class ControlIntersection():
                 # print("orientation_w error, w: ", self.current_orientation_w)
                 angle_range = 30
                 # print(self.current_angle)
-                if(self.current_angle<180+angle_range and self.current_angle>180-angle_range):
+                if( self.current_angle>(180-angle_range)):
                 # if self.current_orientation_w <= 0.255 and self.current_orientation_w >= -0.255:
                     break
 
@@ -105,7 +112,7 @@ class ControlIntersection():
             
             msg_moving = MovingParam()
             msg_moving.moving_type=2#left
-            msg_moving.moving_value_angular=25
+            msg_moving.moving_value_angular=13
             msg_moving.moving_value_linear=0.0
             self.pub_moving.publish(msg_moving)
             while True:
@@ -117,7 +124,7 @@ class ControlIntersection():
             msg_moving = MovingParam()
             msg_moving.moving_type=4
             msg_moving.moving_value_angular=0
-            msg_moving.moving_value_linear=0.1 #0.05 #NEW
+            msg_moving.moving_value_linear=0.15 #0.05 #NEW
             self.pub_moving.publish(msg_moving)
             while True:
                 if self.is_moving_complete == True:
@@ -131,15 +138,16 @@ class ControlIntersection():
                 if self.is_left_detected == True or self.is_right_detected == True:
                     break
             
-            rospy.sleep(0.5)
+            rospy.sleep(3)
             
             if self.is_right_detected == True:
                 rospy.loginfo("right moving")
                 msg_moving = MovingParam()
                 msg_moving.moving_type=3#right
-                msg_moving.moving_value_angular=60
+                msg_moving.moving_value_angular=78
                 msg_moving.moving_value_linear=0.0
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
@@ -151,9 +159,10 @@ class ControlIntersection():
                 rospy.loginfo("left moving")
                 msg_moving = MovingParam()
                 msg_moving.moving_type=2#left
-                msg_moving.moving_value_angular=75
+                msg_moving.moving_value_angular=70
                 msg_moving.moving_value_linear=0.0
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
@@ -176,12 +185,12 @@ class ControlIntersection():
             if(self.is_right_detected == True):
                 while True:
                     # print("right orientation_w error, w: ", self.current_orientation_w)
-                    if self.current_angle <0 and self.current_angle>(-120):
+                    if self.current_angle <0 and self.current_angle>(-125):
                         break
             elif(self.is_left_detected == True):
                 while True:
                     # print("left current_angle error, w: ", self.current_angle)
-                    if self.current_angle >0 and self.current_angle<120:
+                    if self.current_angle >0 and self.current_angle<125:
                         break
             msg_pub_intersection_return.data = self.StepOfIntersection.out.value
         
@@ -190,7 +199,7 @@ class ControlIntersection():
             if(self.is_right_detected == True):
                 msg_moving = MovingParam()
                 msg_moving.moving_type=2#left
-                msg_moving.moving_value_angular=10
+                msg_moving.moving_value_angular=13
                 msg_moving.moving_value_linear=0.0
                 self.is_moving_complete=False
                 self.pub_moving.publish(msg_moving)
@@ -224,7 +233,7 @@ class ControlIntersection():
             elif(self.is_left_detected == True):
                 msg_moving = MovingParam()
                 msg_moving.moving_type=3#right
-                msg_moving.moving_value_angular=10
+                msg_moving.moving_value_angular=13
                 msg_moving.moving_value_linear=0.0
                 self.is_moving_complete=False
                 self.pub_moving.publish(msg_moving)
@@ -236,7 +245,7 @@ class ControlIntersection():
                 msg_moving = MovingParam()
                 msg_moving.moving_type=4
                 msg_moving.moving_value_angular=0
-                msg_moving.moving_value_linear=0.30 #0.05 #NEW
+                msg_moving.moving_value_linear=0.35 
                 self.is_moving_complete=False
                 self.pub_moving.publish(msg_moving)
                 while True:
