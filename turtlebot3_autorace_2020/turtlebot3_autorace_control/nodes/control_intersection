@@ -112,7 +112,7 @@ class ControlIntersection():
             
             msg_moving = MovingParam()
             msg_moving.moving_type=2#left
-            msg_moving.moving_value_angular=13
+            msg_moving.moving_value_angular=19
             msg_moving.moving_value_linear=0.0
             self.pub_moving.publish(msg_moving)
             while True:

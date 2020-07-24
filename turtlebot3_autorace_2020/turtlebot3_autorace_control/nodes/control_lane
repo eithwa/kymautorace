@@ -33,7 +33,7 @@ class ControlLane():
         self.sub_errmoving = rospy.Subscriber('/control/errmoving/state', UInt8, self.cberrmoving, queue_size= 1)
         ##########
         self.lastError = 0
-        self.MAX_VEL = 0.12
+        self.MAX_VEL = 0.105
         self.err_flag = 0
         rospy.on_shutdown(self.fnShutDown)
 
@@ -77,8 +77,7 @@ class ControlLane():
         angular_z = Kp * error + Kd * (error - self.lastError)
         self.lastError = error
         twist = Twist()
-        twist.linear.x = 0.07
-        twist.linear.x*=1.5
+        twist.linear.x = self.MAX_VEL
         twist.linear.y = 0
         twist.linear.z = 0
         twist.angular.x = 0

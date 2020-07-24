@@ -90,7 +90,7 @@ class DetectSign():
 
         # get the file path for rospy_tutorials
         path = rospack.get_path('turtlebot3_autorace_detect')
-        print("path",path)
+        # print("path",path)
         path += "/costom_vision"
 
         ###載入模型
@@ -282,6 +282,6 @@ if __name__ == '__main__':
     # cv2.imshow("test",img)
     # cv2.waitKey(1000)
     # res = oprate(img)
-    rospy.init_node('detect_sign')
+    rospy.init_node('detect_sign_f')
     node = DetectSign()
     node.main()

@@ -23,6 +23,8 @@
   $ roslaunch turtlebot3_autorace_control turtlebot3_autorace_control_lane.launch
 
   $ roslaunch turtlebot3_autorace_camera_detect turtlebot3_autorace_detect_traffic_light.launch
+
+  $ roslaunch turtlebot3_autorace_detect turtlebot3_autorace_detect_parking.launch
  
 ## triffic light
   $ rostopic pub -1 /core/decided_mode std_msgs/UInt8 "data: 3"

@@ -29,6 +29,8 @@ from std_msgs.msg import UInt8, Float64
 
 class CoreNodeController():
     def __init__(self):
+        self.CurrentMode = Enum('CurrentMode', 'idle lane_following traffic_light intersection construction parking_lot level_crossing tunnel')
+        self.current_mode = self.CurrentMode.idle.value
         self.ros_package_path = os.path.dirname(os.path.realpath(__file__))
         self.ros_package_path = self.ros_package_path.replace('turtlebot3_autorace_core/nodes', '')
 
@@ -40,8 +42,7 @@ class CoreNodeController():
         self.sub_parking_lot_stamped = rospy.Subscriber('/detect/parking_lot_stamped', UInt8, self.cbParkingLotStamped, queue_size=1)
         self.sub_level_crossing_stamped = rospy.Subscriber('/detect/level_crossing_stamped', UInt8, self.cbLevelCrossingStamped, queue_size=1)
         self.sub_tunnel_stamped = rospy.Subscriber('/detect/tunnel_stamped', UInt8, self.cbTunnelStamped, queue_size=1)
-
-        self.CurrentMode = Enum('CurrentMode', 'idle lane_following traffic_light intersection construction parking_lot level_crossing tunnel')
+        
         ###add laserscan pub
         self.intercnt = 0
         self.pub_intertoconst_order = rospy.Publisher('/detect/change1', UInt8, queue_size = 1)
@@ -96,8 +97,6 @@ class CoreNodeController():
         self.launch_control_parking_launched = False
         self.launch_control_tunnel_launched = False
 
-        self.current_mode = self.CurrentMode.idle.value
-
         self.is_triggered = False
 
         loop_rate = rospy.Rate(10) # 10hz
@@ -118,7 +117,7 @@ class CoreNodeController():
             msg_mode_return = UInt8()
             msg_mode_return.data = self.current_mode
             self.pub_mode_return.publish(msg_mode_return)
-        
+        # self.fnControlNode()
     def cbIntersectionStamped(self, intersection_msg):
         rospy.loginfo("intersection Step changed from %d", self.current_step_intersection)
         
@@ -248,6 +247,7 @@ class CoreNodeController():
 
     def fnControlNode(self): 
         # lane_following
+        print("fnControlNode", self.current_mode)
         if self.current_mode == self.CurrentMode.lane_following.value:
             rospy.loginfo("New trigger for lane_following")
 
@@ -467,7 +467,7 @@ class CoreNodeController():
 
                 self.fnLaunch(self.Launcher.launch_control_lane.value, True)
                 self.fnLaunch(self.Launcher.launch_control_parking.value, False)
-                self.fnLaunch(self.Launcher.launch_control_moving.value, False)
+                self.fnLaunch(self.Launcher.launch_control_moving.value, True)
 
             elif self.current_step_parking_lot == self.StepOfParkingLot.searching_parking_point_line.value:
                 rospy.loginfo("Current step : searching_parking_point_line")

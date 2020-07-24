@@ -66,8 +66,12 @@ class CoreModeDecider():
 
     def cbInvokedByTrafficSign(self, traffic_sign_type_msg):
         # rospy.loginfo("invoke sign")
-        if self.current_mode != self.CurrentMode.lane_following.value:
-            return
+        if(self.current_mode == self.CurrentMode.lane_following.value):
+            print("sign lane_following mode")
+        elif(self.current_mode == self.CurrentMode.traffic_light.value):
+            print("sign traffic_light")
+        else:
+            print("else ", self.current_mode)
         self.fnDecideMode(self.InvokedObject.traffic_sign.value, traffic_sign_type_msg)
         # rospy.loginfo("Traffic sign detected")
 
@@ -119,7 +123,6 @@ class CoreModeDecider():
     def fnDecideMode(self, invoked_object, msg_data):                        # starts only when the traffic sign / traffic light is detected & current_mode is lane_following
         # print("self.current_mode", self.current_mode)
         # print("msg_data.data", msg_data.data)
-
         if self.current_mode == self.CurrentMode.lane_following.value:
             print("lane following")
             if invoked_object == self.InvokedObject.traffic_sign.value:      # Any Sign detected
@@ -158,7 +161,8 @@ class CoreModeDecider():
                     if self.nopark == 0:
                         pass
                         self.current_mode = self.CurrentMode.parking_lot.value
-                        rospy.loginfo("detect sign : Parking") 
+                        rospy.loginfo("detect sign : Parking")
+                        self.fnPublishMode(self.CurrentMode.parking_lot.value)
                     else:
                         pass
                 elif msg_data.data == self.TrafficSign.tunnel.value:         # Tunnel Sign detected
@@ -176,9 +180,12 @@ class CoreModeDecider():
         else:
             pass
 
-    def fnPublishMode(self):
+    def fnPublishMode(self, mode=0):
         decided_mode = UInt8()
-        decided_mode.data = self.current_mode
+        if(mode==0):
+            decided_mode.data = self.current_mode
+        else:
+            decided_mode.data = mode
         self.pub_decided_mode.publish(decided_mode)
 
     def main(self):

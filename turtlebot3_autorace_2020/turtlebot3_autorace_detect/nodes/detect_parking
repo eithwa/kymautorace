@@ -63,10 +63,10 @@ class DetectParking():
 
         if self.sub_image_type == "compressed":
             # subscribes compressed image
-            self.sub_image_original = rospy.Subscriber('/detect/image_input_p/compressed', CompressedImage, self.cbGetImage, queue_size = 1)
+            self.sub_image_original = rospy.Subscriber('/detect/image_input_p/compressed', CompressedImage, self.cbGetImage, queue_size = 1, buff_size=2**24)
         elif self.sub_image_type == "raw":
             # subscribes raw image
-            self.sub_image_original = rospy.Subscriber('/detect/image_input_p', Image, self.cbGetImage, queue_size = 1)
+            self.sub_image_original = rospy.Subscriber('/detect/image_input_p', Image, self.cbGetImage, queue_size = 1, buff_size=2**24)
 
         if self.pub_image_type == "compressed":
             # publishes parking image in compressed type 
@@ -138,6 +138,8 @@ class DetectParking():
                 self.cv_image_p = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
             else:
                 self.cv_image_p = self.cvBridge.imgmsg_to_cv2(image_msg, "bgr8")
+                self.filter=30
+                self.count=0
                 mask=self.maskYellowLane(self.cv_image_p)
                 rows = mask.shape[0]#480
                 cols = mask.shape[1]#640
@@ -151,9 +153,8 @@ class DetectParking():
                         continue
                     mask_value = mask[y,x]
                     if(mask_value==255):
-                        break
-                    if(x==(cols/2)-1):
-                        # print("fuck")
+                        self.count+=1
+                    if(x==(cols/2)-1 and self.count<self.filter):
                         self.turn_into_parking_log=True
 
                 # img=mask.copy()
@@ -172,7 +173,7 @@ class DetectParking():
                 #             # print(math.sqrt(math.pow((x1-x2),2)+math.pow((y1-y2),2)))
                 #             self.turn_into_parking_log=True
 
-                # cv2.imshow('Result', img)
+                # cv2.imshow('Result', mask)
                 # cv2.waitKey(10)
 
             self.fnBlinkParkSign()
@@ -192,12 +193,20 @@ class DetectParking():
 
         if order.data == self.StepOfParkingLot.searching_parking_sign.value:
             rospy.loginfo("Now lane_following")
+            msg_pub_max_vel = Float64()
+            msg_pub_max_vel.data = 0.07
+            self.pub_max_vel.publish(msg_pub_max_vel)
+            self.turn_into_parking_log=False
             #=======找停車場入口
             while True:
-                # i=0
+                print("sloooooow")
                 if(self.turn_into_parking_log==True):
                     break
-            # rospy.sleep(2)
+            print("stop")
+            msg_pub_max_vel = Float64()
+            msg_pub_max_vel.data = 0.00
+            self.pub_max_vel.publish(msg_pub_max_vel)
+            rospy.sleep(1)
             #=======
             # msg_pub_parking_lot_return.data = self.StepOfParkingLot.searching_parking_sign.value
             msg_pub_parking_lot_return.data = self.StepOfParkingLot.searching_parking_point_line.value
@@ -209,18 +218,18 @@ class DetectParking():
             msg_pub_max_vel.data = 0.00
             self.pub_max_vel.publish(msg_pub_max_vel)
 
-            # rospy.sleep(1)
+            # rospy.sleep(3)
 
             rospy.loginfo("doing motion_str")
             msg_moving = MovingParam()
             msg_moving.moving_type= 4
             msg_moving.moving_value_angular=0.0
-            msg_moving.moving_value_linear=0.10
+            msg_moving.moving_value_linear=0.25
             self.pub_moving.publish(msg_moving)
+            self.is_moving_complete = False
             while True:
                 if self.is_moving_complete == True:
                     break
-            self.is_moving_complete = False
 
             rospy.sleep(1)
 
@@ -230,11 +239,11 @@ class DetectParking():
             msg_moving.moving_value_angular=80
             msg_moving.moving_value_linear=0.0
             self.pub_moving.publish(msg_moving)
+            self.is_moving_complete = False
             while True:
                 if self.is_moving_complete == True:
                     break
-            self.is_moving_complete = False
-
+        
             rospy.sleep(0.5)
             ########################################################################
             rospy.loginfo("doing motion_str2")
@@ -242,10 +251,10 @@ class DetectParking():
             msg_moving.moving_value_angular=0.0
             msg_moving.moving_value_linear=0.9
             self.pub_moving.publish(msg_moving)
+            self.is_moving_complete = False
             while True:
                 if self.is_moving_complete == True:
                     break
-            self.is_moving_complete = False
 
             rospy.sleep(0.5)
         #####################################################################3
@@ -264,10 +273,10 @@ class DetectParking():
                 msg_moving.moving_value_angular=90
                 msg_moving.moving_value_linear=0.0
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(0.5)
 
                 rospy.loginfo("doing motion_str")
@@ -275,10 +284,10 @@ class DetectParking():
                 msg_moving.moving_value_angular=0.0
                 msg_moving.moving_value_linear=0.25
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(0.5)
                 
                 rospy.loginfo("doing motion_str")
@@ -286,10 +295,10 @@ class DetectParking():
                 msg_moving.moving_value_angular=0.0
                 msg_moving.moving_value_linear=0.25
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(0.5)
 
                 rospy.loginfo("doing motion_ri")
@@ -297,10 +306,10 @@ class DetectParking():
                 msg_moving.moving_value_angular=93
                 msg_moving.moving_value_linear=0.0
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(0.5)
 
                 rospy.loginfo("doing motion_str")
@@ -309,10 +318,10 @@ class DetectParking():
                 msg_moving.moving_value_angular=0.0
                 msg_moving.moving_value_linear=0.9
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(0.5)
 
                 # rospy.loginfo("left parking lot is clear")
@@ -320,21 +329,21 @@ class DetectParking():
                 msg_moving.moving_value_angular=90
                 msg_moving.moving_value_linear=0.0
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
-                rospy.sleep(0.5)   
+                rospy.sleep(1)   
      
                 msg_moving.moving_type= 4
                 msg_moving.moving_value_angular=0.0
-                msg_moving.moving_value_linear=0.15
+                msg_moving.moving_value_linear=0.05
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
-                rospy.sleep(0.5)
+                rospy.sleep(1)
             
             elif self.is_obstacle_detected_L == False:
                 rospy.loginfo("left parking lot is clear")
@@ -343,40 +352,40 @@ class DetectParking():
                 msg_moving.moving_value_angular=85
                 msg_moving.moving_value_linear=0.0
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(1)
 
                 msg_moving.moving_type= 4
                 msg_moving.moving_value_angular=0.0
                 msg_moving.moving_value_linear=0.25
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(0.5)
                 
                 msg_moving.moving_type= 5
                 msg_moving.moving_value_angular=0.0
                 msg_moving.moving_value_linear=0.25
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(0.5)
 
                 msg_moving.moving_type= 2
                 msg_moving.moving_value_angular=95
                 msg_moving.moving_value_linear=0.0
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(0.5)
             
 
@@ -386,10 +395,10 @@ class DetectParking():
                 msg_moving.moving_value_angular=0.0
                 msg_moving.moving_value_linear=0.95
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(0.5)
 
                 rospy.loginfo("left parking lot Finish")
@@ -397,20 +406,20 @@ class DetectParking():
                 msg_moving.moving_value_angular=90
                 msg_moving.moving_value_linear=0.0
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(1)
 
                 msg_moving.moving_type= 4
                 msg_moving.moving_value_angular=0.0
                 msg_moving.moving_value_linear=0.05
                 self.pub_moving.publish(msg_moving)
+                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
-                self.is_moving_complete = False
                 rospy.sleep(0.5)
 
             rospy.loginfo("parking finished")
@@ -473,18 +482,19 @@ class DetectParking():
         scan_end_right = 270 + angle_scan
 
         threshold_distance = 0.5
-
+        # print("fuck")
         if self.start_obstacle_detection == True:
+            print("scan")
             for i in range(scan_start_left, scan_end_left):
                 if scan.ranges[i] < threshold_distance and scan.ranges[i] > 0.01:
                     self.is_obstacle_detected_L = True
-                    rospy.loginfo("left detected")
+                    # rospy.loginfo("left detected")
             
 
             for i in range(scan_start_right, scan_end_right):
                 if scan.ranges[i] < threshold_distance and scan.ranges[i] > 0.01:
                     self.is_obstacle_detected_R = True
-                    rospy.loginfo("right detected")
+                    # rospy.loginfo("right detected")
             self.start_obstacle_detection = False
 
     def fnFindDotLine(self):
