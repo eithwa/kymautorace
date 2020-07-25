@@ -251,12 +251,12 @@ class DetectTrafficLight():
                 msg_sign.data = self.CurrentMode.lane_following.value
                 #==========move straight
                 rospy.loginfo("doing motion_str")
+                self.is_moving_complete = False
                 msg_moving = MovingParam()
                 msg_moving.moving_type= 4
                 msg_moving.moving_value_angular=0.0
                 msg_moving.moving_value_linear=0.15
                 self.pub_moving.publish(msg_moving)
-                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break

@@ -109,10 +109,11 @@ class ControlIntersection():
 
         elif order.data == self.StepOfIntersection.exit.value:
             # rospy.sleep(1)
-            
+            rospy.loginfo("Now motion")
+            self.is_moving_complete = False
             msg_moving = MovingParam()
             msg_moving.moving_type=2#left
-            msg_moving.moving_value_angular=19
+            msg_moving.moving_value_angular=28
             msg_moving.moving_value_linear=0.0
             self.pub_moving.publish(msg_moving)
             while True:
@@ -120,7 +121,7 @@ class ControlIntersection():
                     break
             rospy.sleep(0.5)
 
-            rospy.loginfo("Now motion")
+            self.is_moving_complete = False
             msg_moving = MovingParam()
             msg_moving.moving_type=4
             msg_moving.moving_value_angular=0
@@ -129,9 +130,18 @@ class ControlIntersection():
             while True:
                 if self.is_moving_complete == True:
                     break
-
             rospy.sleep(0.5)
             
+            self.is_moving_complete = False
+            msg_moving = MovingParam()
+            msg_moving.moving_type=3#left
+            msg_moving.moving_value_angular=5
+            msg_moving.moving_value_linear=0.0
+            self.pub_moving.publish(msg_moving)
+            while True:
+                if self.is_moving_complete == True:
+                    break
+            rospy.sleep(0.5)
 
             print("searching sign")
             while True:
@@ -142,12 +152,12 @@ class ControlIntersection():
             
             if self.is_right_detected == True:
                 rospy.loginfo("right moving")
+                self.is_moving_complete = False
                 msg_moving = MovingParam()
                 msg_moving.moving_type=3#right
-                msg_moving.moving_value_angular=78
+                msg_moving.moving_value_angular=86
                 msg_moving.moving_value_linear=0.0
                 self.pub_moving.publish(msg_moving)
-                self.is_moving_complete = False
                 while True:
                     if self.is_moving_complete == True:
                         break
